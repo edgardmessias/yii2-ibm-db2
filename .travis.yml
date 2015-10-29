@@ -1,0 +1,58 @@
+language: php
+
+php:
+  - 5.4
+
+sudo: true
+
+before_install:
+  # Parallel download
+  - sudo apt-get update -qq 
+  - sudo apt-get install aria2 curl -y
+
+  # Retrieves and extracts the DB2 binaries
+  - travis_retry export DOWNLOAD_LINK=$(phantomjs --ssl-protocol=tlsv1 ./tests/ci/travis/download.js | tail -1 | grep http)
+  - cd /tmp
+  - travis_retry aria2c -x 16 ${DOWNLOAD_LINK}
+  - DOWNLOAD_FILE=$(ls *.tar.gz)
+  - tar zxvf ${DOWNLOAD_FILE}
+
+  # INSTALL
+  # Install the required libraries
+  - sudo apt-get install libaio1 lib32stdc++6 -y
+  - sudo apt-get install -qq libpam-ldap:i386
+  - sudo ln -s /lib/i386-linux-gnu/libpam.so.0 /lib/libpam.so.0
+
+  # Checks the prerequisites
+  - cd /tmp/expc ; ./db2prereqcheck -l
+  # Install DB2 and creates an instance (Response file)
+  - sudo ./db2setup -r  ${TRAVIS_BUILD_DIR}/tests/ci/travis/db2.rsp
+  # Create user
+  - sudo useradd test
+  - echo "test:test" | sudo chpasswd
+  # Changes the security
+  - sudo usermod -a -G db2iadm1 test
+  - sudo chsh -s /bin/bash db2inst1
+  - sudo su - db2inst1 -c "db2 update dbm cfg using SYSADM_GROUP db2iadm1 ; db2stop ; db2start"
+  # Creates the database
+  - sudo su - db2inst1 -c "db2 create db test ; db2 connect to test ; db2 grant dbadm on database to user test"
+  
+  # Install pdo_ibm
+  - export DB2DIR=/home/db2inst1/sqllib
+  - git clone https://git.php.net/repository/pecl/database/pdo_ibm.git
+  - (cd pdo_ibm/; phpize && ./configure --with-pdo-ibm=${DB2DIR} && make && sudo make install)
+
+install:
+  - cd ${TRAVIS_BUILD_DIR}
+  - echo "extension=pdo_ibm.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - php -m | grep -i pdo
+  - travis_retry composer self-update && composer --version
+  - travis_retry composer global require "fxp/composer-asset-plugin:~1.0.0" --prefer-dist --no-interaction
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+  - travis_retry composer install --prefer-dist --no-interaction
+
+script:
+  - phpunit -v
+
+after_failure:
+  - cat /tmp/db2setup.log

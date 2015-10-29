@@ -1,0 +1,25 @@
+{
+    "name": "edgardmessias/yii2-ibm-db2",
+    "description": "IBM DB2 Driver for Yii2 Framework.",
+    "type": "yii2-extension",
+    "keywords": ["yii2", "extension", "ibm", "db2", "ibm db2", "activerecord"],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Edgard Messias",
+            "email": "edgardmessias@gmail.com"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": ">=2.0.6"
+    },
+    "require-dev": {
+        "yiisoft/yii2-dev": ">=2.0.6",
+        "phpunit/phpunit": "~4.5"        
+    },
+    "autoload": {
+        "psr-4": {
+            "edgardmessias\\db\\ibm\\db2\\": "src"
+        }
+    }
+}
