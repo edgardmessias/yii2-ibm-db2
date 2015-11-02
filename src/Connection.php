@@ -25,6 +25,7 @@ class Connection extends \yii\db\Connection
      */
     public $attributes = [
         PDO::ATTR_CASE => PDO::CASE_NATURAL,
+        PDO::ATTR_STRINGIFY_FETCHES => true,
     ];
     
     /**

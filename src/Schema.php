@@ -14,6 +14,7 @@ use yii\db\TableSchema;
 
 /**
  * @author Edgard Messias <edgardmessias@gmail.com>
+ * @author Nikita Verkhovin <vernik91@gmail.com>
  * @since 1.0
  */
 class Schema extends \yii\db\Schema
@@ -46,6 +47,14 @@ class Schema extends \yii\db\Schema
         'time'       => self::TYPE_TIME,
         'timestamp'  => self::TYPE_TIMESTAMP
     ];
+
+   /**
+     * @inheritdoc
+     */
+    public function createQueryBuilder()
+    {
+        return new QueryBuilder($this->db);
+    }
 
     /**
      * @inheritdoc
