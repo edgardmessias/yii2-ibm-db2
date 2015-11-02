@@ -53,6 +53,3 @@ install:
 
 script:
   - phpunit -v
-
-after_failure:
-  - cat /tmp/db2setup.log

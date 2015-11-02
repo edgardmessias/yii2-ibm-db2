@@ -8,12 +8,24 @@
 
 namespace edgardmessias\db\ibm\db2;
 
+use PDO;
+
 /**
  * @author Edgard Messias <edgardmessias@gmail.com>
  * @since 1.0
  */
 class Connection extends \yii\db\Connection
 {
+    
+    /**
+     * @var array PDO attributes (name => value) that should be set when calling [[open()]]
+     * to establish a DB connection. Please refer to the
+     * [PHP manual](http://www.php.net/manual/en/function.PDO-setAttribute.php) for
+     * details about available attributes.
+     */
+    public $attributes = [
+        PDO::ATTR_CASE => PDO::CASE_NATURAL,
+    ];
     
     /**
      * @var array mapping between PDO driver names and [[Schema]] classes.

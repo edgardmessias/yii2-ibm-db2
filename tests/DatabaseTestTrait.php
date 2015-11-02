@@ -29,7 +29,8 @@ trait DatabaseTestTrait
         }
         $db->open();
         if ($fixture !== null) {
-            $lines = explode(';', file_get_contents($fixture));
+            list($drops, $creates) = explode('/* STATEMENTS */', file_get_contents($fixture), 2);
+            $lines = array_merge(explode('--', $drops), explode(';', $creates));
             foreach ($lines as $line) {
                 $line = trim($line);
                 if ($line !== '') {
