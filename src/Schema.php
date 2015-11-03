@@ -11,6 +11,7 @@ namespace edgardmessias\db\ibm\db2;
 use PDO;
 use yii\db\Expression;
 use yii\db\TableSchema;
+use yii\db\Transaction;
 
 /**
  * @author Edgard Messias <edgardmessias@gmail.com>
@@ -336,4 +337,58 @@ SQL;
 
         return $command->queryColumn();
     }
+    
+    /**
+     * Sets the isolation level of the current transaction.
+     * @param string $level The transaction isolation level to use for this transaction.
+     * This can be one of [[Transaction::READ_UNCOMMITTED]], [[Transaction::READ_COMMITTED]], [[Transaction::REPEATABLE_READ]]
+     * and [[Transaction::SERIALIZABLE]] but also a string containing DBMS specific syntax to be used
+     * after `SET TRANSACTION ISOLATION LEVEL`.
+     * @see http://en.wikipedia.org/wiki/Isolation_%28database_systems%29#Isolation_levels
+     */
+    public function setTransactionIsolationLevel($level)
+    {
+        $sql = 'SET CURRENT ISOLATION ';
+        switch ($level) {
+            case Transaction::READ_UNCOMMITTED:
+                $sql .= 'UR';
+                break;
+            case Transaction::READ_COMMITTED:
+                $sql .= 'CS';
+                break;
+            case Transaction::REPEATABLE_READ:
+                $sql .= 'RS';
+                break;
+            case Transaction::SERIALIZABLE:
+                $sql .= 'RR';
+                break;
+            default:
+                $sql .= $level;
+        }
+        
+        $this->db->createCommand($sql)->execute();
+    }
+    
+    /**
+     * Refreshes the particular table schema.
+     * This method cleans up cached table schema so that it can be re-created later
+     * to reflect the database schema change.
+     * @param string $name table name.
+     * @since 2.0.6
+     */
+    public function refreshTableSchema($name)
+    {
+        try {
+            $sql = "CALL ADMIN_CMD ('REORG TABLE " . $this->db->quoteTableName($name) . "')";
+            $this->db->createCommand($sql)->execute();
+        } catch (\Exception $ex) {
+            // Do not throw error on table which doesn't exist
+            if (!(isset($ex->errorInfo[1]) && $ex->errorInfo[1] === -2211)) {
+                throw new \Exception($ex->getMessage(), $ex->getCode(), $ex->getPrevious());
+            }
+        }
+
+        parent::refreshTableSchema($name);
+    }
+    
 }
