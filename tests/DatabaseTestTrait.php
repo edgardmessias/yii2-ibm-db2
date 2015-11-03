@@ -3,7 +3,7 @@
 namespace edgardmessias\unit\db\ibm\db2;
 
 /**
- * @group sphinx
+ * @group ibm_db2
  */
 trait DatabaseTestTrait
 {
