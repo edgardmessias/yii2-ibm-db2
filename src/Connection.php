@@ -41,4 +41,22 @@ class Connection extends \yii\db\Connection
     public $schemaMap = [
         'ibm'   => 'edgardmessias\db\ibm\db2\Schema', // IBM DB2
     ];
+    
+    /**
+     * Creates a command for execution.
+     * @param string $sql the SQL statement to be executed
+     * @param array $params the parameters to be bound to the SQL statement
+     * @return Command the DB command
+     */
+    public function createCommand($sql = null, $params = [])
+    {
+        $command = new Command([
+            'db' => $this,
+            'sql' => $sql,
+        ]);
+
+        return $command->bindValues($params);
+    }
+
+    
 }
