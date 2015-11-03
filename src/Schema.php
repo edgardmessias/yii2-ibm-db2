@@ -390,5 +390,4 @@ SQL;
 
         parent::refreshTableSchema($name);
     }
-    
 }
