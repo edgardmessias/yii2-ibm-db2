@@ -40,6 +40,16 @@ class QueryBuilder extends \yii\db\QueryBuilder
     ];
 
     /**
+     * Builds a SQL statement for truncating a DB table.
+     * @param string $table the table to be truncated. The name will be properly quoted by the method.
+     * @return string the SQL statement for truncating a DB table.
+     */
+    public function truncateTable($table)
+    {
+        return 'TRUNCATE TABLE ' . $this->db->quoteTableName($table) . ' IMMEDIATE';
+    }
+
+    /**
      * @inheritdoc
      */
     public function resetSequence($tableName, $value = null)
@@ -73,9 +83,9 @@ class QueryBuilder extends \yii\db\QueryBuilder
     {
         $enable = $check ? 'IMMEDIATE CHECKED' : 'ALL IMMEDIATE UNCHECKED';
         
-        if($table){
+        if ($table) {
             $tableNames = [$table];
-        }else{
+        } else {
             //Return only tables
             $sql = "SELECT t.tabname FROM syscat.tables AS t"
                     . " WHERE t.type in ('T') AND t.ownertype != 'S'";

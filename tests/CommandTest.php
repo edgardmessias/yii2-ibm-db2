@@ -6,6 +6,7 @@ use edgardmessias\db\ibm\db2\Schema;
 use PDO;
 use yii\db\Exception;
 use yii\db\Expression;
+use yii\db\Query;
 
 /**
  * @group ibm_db2
@@ -173,5 +174,21 @@ SQL;
             ['id' => 1, 'bar' => 1],
             ['id' => 2, 'bar' => 'hello'],
         ], $records);
+    }
+    
+    public function testTruncateTable()
+    {
+        $db = $this->getConnection(false);
+        $countBefore = (new Query())->from('animal')->count('*', $db);
+        $this->assertEquals(2, $countBefore);
+
+        $qb = $db->getQueryBuilder();
+        
+        $sqlTruncate = $qb->truncateTable('animal');
+        $this->assertEquals('TRUNCATE TABLE "animal" IMMEDIATE', $sqlTruncate);
+        
+        $db->createCommand($sqlTruncate)->execute();
+        $countAfter = (new Query())->from('animal')->count('*', $db);
+        $this->assertEquals(0, $countAfter);
     }
 }
