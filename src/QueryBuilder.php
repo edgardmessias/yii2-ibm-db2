@@ -62,6 +62,45 @@ class QueryBuilder extends \yii\db\QueryBuilder
     }
 
     /**
+     * Builds a SQL statement for enabling or disabling integrity check.
+     * @param boolean $check whether to turn on or off the integrity check.
+     * @param string $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
+     * @param string $table the table name. Defaults to empty string, meaning that no table will be changed.
+     * @return string the SQL statement for checking integrity
+     * @throws \yii\base\NotSupportedException if this is not supported by the underlying DBMS
+     */
+    public function checkIntegrity($check = true, $schema = '', $table = '')
+    {
+        $enable = $check ? 'IMMEDIATE CHECKED' : 'ALL IMMEDIATE UNCHECKED';
+        
+        if($table){
+            $tableNames = [$table];
+        }else{
+            //Return only tables
+            $sql = "SELECT t.tabname FROM syscat.tables AS t"
+                    . " WHERE t.type in ('T') AND t.ownertype != 'S'";
+            if ($check) {
+                $sql .= " AND t.status = 'C'";
+            }
+            if ($schema) {
+                $sql .= ' AND t.tabschema = :schema';
+            }
+            
+            $command = $this->db->createCommand($sql);
+            if ($schema) {
+                $command->bindValue(':schema', $schema);
+            }
+
+            $tableNames = $command->queryColumn();
+        }
+        
+        foreach ($tableNames as $tableName) {
+            $tableName = $this->db->quoteTableName($tableName);
+            $this->db->createCommand("SET INTEGRITY FOR $tableName $enable")->execute();
+        }
+    }
+
+    /**
      * @inheritdoc
      */
     public function buildOrderByAndLimit($sql, $orderBy, $limit, $offset)
