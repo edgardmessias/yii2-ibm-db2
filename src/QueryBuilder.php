@@ -78,17 +78,21 @@ class QueryBuilder extends \yii\db\QueryBuilder
      * @param string $table the table name. Defaults to empty string, meaning that no table will be changed.
      * @return string the SQL statement for checking integrity
      * @throws \yii\base\NotSupportedException if this is not supported by the underlying DBMS
+     * @see http://www-01.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0000998.html?cp=SSEPGG_10.5.0%2F2-12-7-227
      */
     public function checkIntegrity($check = true, $schema = '', $table = '')
     {
-        $enable = $check ? 'IMMEDIATE CHECKED' : 'ALL IMMEDIATE UNCHECKED';
-        
         if ($table) {
             $tableNames = [$table];
         } else {
             //Return only tables
             $sql = "SELECT t.tabname FROM syscat.tables AS t"
                     . " WHERE t.type in ('T') AND t.ownertype != 'S'";
+
+            /**
+             * Filter by integrity pending
+             * @see http://www-01.ibm.com/support/knowledgecenter/SSEPGG_9.7.0/com.ibm.db2.luw.sql.ref.doc/doc/r0001063.html
+             */
             if ($check) {
                 $sql .= " AND t.status = 'C'";
             }
@@ -103,11 +107,18 @@ class QueryBuilder extends \yii\db\QueryBuilder
 
             $tableNames = $command->queryColumn();
         }
-        
-        foreach ($tableNames as $tableName) {
-            $tableName = $this->db->quoteTableName($tableName);
-            $this->db->createCommand("SET INTEGRITY FOR $tableName $enable")->execute();
+
+        if (empty($tableNames)) {
+            return '';
         }
+
+        $quotedTableNames = [];
+        foreach ($tableNames as $tableName) {
+            $quotedTableNames[] = $this->db->quoteTableName($tableName) . ($check? '' : ' ALL');
+        }
+
+        $enable = $check ? 'CHECKED' : 'UNCHECKED';
+        return 'SET INTEGRITY FOR ' . implode(', ', $quotedTableNames) . ' IMMEDIATE ' . $enable. ';';
     }
 
     /**
