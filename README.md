@@ -40,16 +40,40 @@ Configuration
 
 To use this extension, simply add the following code in your application configuration:
 
+Using IBM DB2:
+
 ```php
 return [
     //....
     'components' => [
         'db' => [
-            'class'    => 'edgardmessias\db\ibm\db2\Connection',
-            'dsn'      => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=test;"HOSTNAME=127.0.0.1;PORT=50000;PROTOCOL=TCPIP',
-            'username' => 'username',
-            'password' => 'password',
+            'class'         => 'edgardmessias\db\ibm\db2\Connection',
+            'dsn'           => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=test;"HOSTNAME=127.0.0.1;PORT=50000;PROTOCOL=TCPIP',
+            'username'      => 'username',
+            'password'      => 'password',
+            'defaultSchema' => '',
+            'isISeries'     => false
         ],
     ],
 ];
 ```
+
+Using ODBC IBM iAccess driver:
+
+```php
+return [
+    //....
+    'components' => [
+        'db' => [
+            'class'         => 'edgardmessias\db\ibm\db2\Connection',
+            'dsn'           => 'odbc:DRIVER={IBM i Access ODBC Driver 64-bit};SYSTEM=127.0.0.1;PROTOCOL=TCPIP',
+            'username'      => 'username',
+            'password'      => 'password',
+            'defaultSchema' => '',
+            'isISeries'     => false
+        ],
+    ],
+];
+```
+
+If working on iSeries set isISeries parameter to true and fill defaultSchema.

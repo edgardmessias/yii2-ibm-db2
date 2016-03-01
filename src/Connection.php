@@ -16,7 +16,21 @@ use PDO;
  */
 class Connection extends \yii\db\Connection
 {
-    
+
+    /**
+     * @var bool set to true if working on iSeries
+     */
+
+    public $isISeries;
+
+
+    /**
+     * @var string need to be set if isISeries is set to true
+     */
+
+    public $defaultSchema;
+
+
     /**
      * @var array PDO attributes (name => value) that should be set when calling [[open()]]
      * to establish a DB connection. Please refer to the
@@ -40,6 +54,7 @@ class Connection extends \yii\db\Connection
      */
     public $schemaMap = [
         'ibm'   => 'edgardmessias\db\ibm\db2\Schema', // IBM DB2
+        'odbc'   => 'edgardmessias\db\ibm\db2\Schema', // IBM DB2 ODBC
     ];
     
     /**
