@@ -18,21 +18,26 @@ use yii\db\Transaction;
  * @author Nikita Verkhovin <vernik91@gmail.com>
  * @since 1.0
  */
+
 class Schema extends \yii\db\Schema
 {
+
 
     public $typeMap = [
         'character'  => self::TYPE_STRING,
         'varchar'    => self::TYPE_STRING,
+        'char'       => self::TYPE_STRING,
         'clob'       => self::TYPE_TEXT,
         'graphic'    => self::TYPE_STRING,
         'vargraphic' => self::TYPE_STRING,
+        'varg'       => self::TYPE_STRING,
         'dbclob'     => self::TYPE_TEXT,
         'nchar'      => self::TYPE_STRING,
         'nvarchar'   => self::TYPE_STRING,
         'nclob'      => self::TYPE_TEXT,
         'binary'     => self::TYPE_BINARY,
         'varbinary'  => self::TYPE_BINARY,
+        'varbin'     => self::TYPE_BINARY,
         'blob'       => self::TYPE_BINARY,
         'smallint'   => self::TYPE_SMALLINT,
         'int'        => self::TYPE_INTEGER,
@@ -46,8 +51,27 @@ class Schema extends \yii\db\Schema
         'decfloat'   => self::TYPE_FLOAT,
         'date'       => self::TYPE_DATE,
         'time'       => self::TYPE_TIME,
-        'timestamp'  => self::TYPE_TIMESTAMP
+        'timestamp'  => self::TYPE_TIMESTAMP,
+        'timestmp'   => self::TYPE_TIMESTAMP
     ];
+
+   /* public $_isIseries = null;
+
+    public function isISeries() {
+        if ($this->_isIseries !== null) {
+            return $this->_isIseries;
+        }
+        try {
+            $sql = "SELECT * FROM QSYS2.SYSTABLES FETCH FIRST 1 ROW ONLY";
+            $command = $this->db->createCommand($sql);
+            $stmt = $command->execute();
+            $this->_isIseries = (bool) $stmt;
+            return $this->_isIseries;
+        } catch (Exception $ex) {
+            $this->_isIseries = false;
+            return $this->_isIseries;
+        }
+    }*/
 
    /**
      * @inheritdoc
@@ -168,34 +192,69 @@ class Schema extends \yii\db\Schema
      */
     protected function findColumns($table)
     {
-        $sql = <<<SQL
-            SELECT
-                c.colname AS name,
-                c.typename AS dbtype,
-                cast(c.default as varchar(254)) AS defaultvalue,
-                c.scale AS scale,
-                c.length AS size,
-                CASE WHEN c.nulls = 'Y'         THEN 1 ELSE 0 END AS allownull,
-                CASE WHEN c.keyseq IS NOT NULL  THEN 1 ELSE 0 END AS isprimarykey,
-                CASE WHEN c.identity = 'Y'      THEN 1 ELSE 0 END AS autoincrement,
-                c.remarks AS comment
-            FROM
-                syscat.columns AS c
-            WHERE
-                c.tabname = :table
+
+
+        if ($this->db->isISeries) {
+            $sql = <<<SQL
+                SELECT c.column_name AS name,
+                       c.data_type AS dbtype,
+                       CAST(c.column_default AS VARCHAR(254)) AS defaultvalue,
+                       CASE WHEN c.is_nullable = 'Y'         THEN 1 ELSE 0 END AS allownull,
+                       c.length AS size,
+                       c.numeric_scale AS scale,
+                       CASE WHEN c.is_identity = 'YES'      THEN 1 ELSE 0 END AS autoincrement,
+                       case when x.column<>'' THEN 1 ELSE 0 END AS isprimarykey
+                FROM qsys2.syscolumns c
+                left join (
+                SELECT
+                column_name As column
+                FROM qsys2.syscst
+                INNER JOIN qsys2.syskeycst
+                  ON qsys2.syscst.constraint_name = qsys2.syskeycst.constraint_name
+                 AND qsys2.syscst.table_schema = qsys2.syskeycst.table_schema
+                 AND qsys2.syscst.table_name = qsys2.syskeycst.table_name
+                WHERE qsys2.syscst.constraint_type = 'PRIMARY KEY'
+                  AND qsys2.syscst.table_name = :table) x
+                  on x.column= c.column_name
+                WHERE UPPER(c.table_name) = :table1
+                AND c.table_schema = :schema
+SQL;
+            $sql .= ' ORDER BY c.ordinal_position';
+        } else {
+            $sql = <<<SQL
+                SELECT
+                    c.colname AS name,
+                    c.typename AS dbtype,
+                    cast(c.default as varchar(254)) AS defaultvalue,
+                    c.scale AS scale,
+                    c.length AS size,
+                    CASE WHEN c.nulls = 'Y'         THEN 1 ELSE 0 END AS allownull,
+                    CASE WHEN c.keyseq IS NOT NULL  THEN 1 ELSE 0 END AS isprimarykey,
+                    CASE WHEN c.identity = 'Y'      THEN 1 ELSE 0 END AS autoincrement,
+                    c.remarks AS comment
+                FROM
+                    syscat.columns AS c
+                WHERE
+                    c.tabname = :table
 SQL;
 
-        if (isset($table->schemaName)) {
-            $sql .= ' AND c.tabschema = :schema';
-        }
+            if (isset($table->schemaName)) {
+                $sql .= ' AND c.tabschema = :schema';
+            }
 
-        $sql .= ' ORDER BY c.colno';
+            $sql .= ' ORDER BY c.colno';
+        }
 
         $command = $this->db->createCommand($sql);
         $command->bindValue(':table', $table->name);
+        if($this->db->isISeries){
+            $command->bindValue(':schema', $this->db->defaultSchema);
+            $command->bindValue(':table1', $table->name);
 
-        if (isset($table->schemaName)) {
-            $command->bindValue(':schema', $table->schemaName);
+        }else {
+            if (isset($table->schemaName)) {
+                $command->bindValue(':schema', $table->schemaName);
+            }
         }
         $columns = $command->queryAll();
         if (empty($columns)) {
@@ -223,7 +282,28 @@ SQL;
      */
     protected function findConstraints($table)
     {
-        $sql = <<<SQL
+        if ($this->db->isISeries) {
+            $sql = <<<SQL
+            SELECT
+              parent.table_name AS tablename,
+              parent.column_name AS pk,
+              child.column_name AS fk
+            FROM qsys2.syskeycst child
+            INNER JOIN qsys2.sysrefcst crossref
+                ON child.constraint_schema = crossref.constraint_schema
+               AND child.constraint_name = crossref.constraint_name
+            INNER JOIN qsys2.syskeycst parent
+                ON crossref.unique_constraint_schema = parent.constraint_schema
+               AND crossref.unique_constraint_name = parent.constraint_name
+            INNER JOIN qsys2.syscst coninfo
+                ON child.constraint_name = coninfo.constraint_name
+            WHERE UPPER(child.table_name) = :table
+              AND coninfo.constraint_type = 'FOREIGN KEY'
+              AND child.table_schema = :schema
+SQL;
+
+        } else {
+            $sql = <<<SQL
             SELECT
                 pk.tabname AS tablename,
                 fk.colname AS fk,
@@ -238,15 +318,18 @@ SQL;
                 fk.tabname = :table
 SQL;
 
-        if (isset($table->schemaName)) {
-            $sql .= ' AND fk.tabschema = :schema';
+            if (isset($table->schemaName)) {
+                $sql .= ' AND fk.tabschema = :schema';
+            }
         }
-
         $command = $this->db->createCommand($sql);
         $command->bindValue(':table', $table->name);
-
-        if (isset($table->schemaName)) {
-            $command->bindValue(':schema', $table->schemaName);
+        if($this->db->isISeries){
+            $command->bindValue(':schema', $this->db->defaultSchema);
+        }else {
+            if (isset($table->schemaName)) {
+                $command->bindValue(':schema', $table->schemaName);
+            }
         }
 
         $results = $command->queryAll();
@@ -274,7 +357,24 @@ SQL;
      */
     public function findUniqueIndexes($table)
     {
-        $sql = <<<SQL
+
+        if ($this->db->isISeries) {
+            $sql = <<<SQL
+                SELECT
+                qsys2.syskeycst.constraint_name As indexname,
+                qsys2.syskeycst.column_name As column
+                FROM qsys2.syscst
+                INNER JOIN qsys2.syskeycst
+                  ON qsys2.syscst.constraint_name = qsys2.syskeycst.constraint_name
+                 AND qsys2.syscst.table_schema = qsys2.syskeycst.table_schema
+                 AND qsys2.syscst.table_name = qsys2.syskeycst.table_name
+                WHERE qsys2.syscst.constraint_type = 'PRIMARY KEY'
+                  AND qsys2.syscst.table_name = :table
+                  AND qsys2.syscst.table_schema = :schema
+                  ORDER BY qsys2.syskeycst.column_position
+SQL;
+        }else {
+            $sql = <<<SQL
             SELECT
                 i.indname AS indexname,
                 ic.colname AS column
@@ -286,19 +386,22 @@ SQL;
                 i.tabname = :table
 SQL;
 
-        if (isset($table->schemaName)) {
-            $sql .= ' AND tabschema = :schema';
+            if (isset($table->schemaName)) {
+                $sql .= ' AND tabschema = :schema';
+            }
+
+            $sql .= ' ORDER BY ic.colseq';
         }
-
-        $sql .= ' ORDER BY ic.colseq';
-
         $command = $this->db->createCommand($sql);
         $command->bindValue(':table', $table->name);
 
-        if (isset($table->schemaName)) {
-            $command->bindValue(':schema', $table->schemaName);
+        if($this->db->isISeries){
+            $command->bindValue(':schema', $this->db->defaultSchema);
+        }else{
+            if (isset($table->schemaName)) {
+                $command->bindValue(':schema', $table->schemaName);
+            }
         }
-
         $results = $command->queryAll();
         $indexes = [];
         foreach ($results as $result) {
@@ -315,20 +418,36 @@ SQL;
      */
     protected function findTableNames($schema = '')
     {
-        $sql = <<<SQL
+
+        if ($schema === '' && $this->db->isISeries) {
+                $schema= $this->db->defaultSchema;
+        }
+
+        if ($this->db->isISeries) {
+            $sql = <<<SQL
+                SELECT TABLE_NAME as tabname
+                FROM QSYS2.SYSTABLES
+                WHERE TABLE_TYPE IN ('P','T','V')
+                  AND SYSTEM_TABLE = 'N'
+                  AND TABLE_SCHEMA = :schema
+                ORDER BY TABLE_NAME
+SQL;
+        }else {
+
+            $sql = <<<SQL
             SELECT
                 t.tabname
             FROM
                 syscat.tables AS t
             WHERE
-                t.type in ('T', 'V') AND
+                t.type in ('P','T', 'V') AND
                 t.ownertype != 'S'
 SQL;
 
-        if ($schema !== '') {
-            $sql .= ' AND t.tabschema = :schema';
+            if ($schema !== '') {
+                $sql .= ' AND t.tabschema = :schema';
+            }
         }
-
         $command = $this->db->createCommand($sql);
 
         if ($schema !== '') {

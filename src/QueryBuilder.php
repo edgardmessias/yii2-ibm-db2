@@ -127,13 +127,15 @@ class QueryBuilder extends \yii\db\QueryBuilder
     public function buildOrderByAndLimit($sql, $orderBy, $limit, $offset)
     {
         $orderByStatment = $this->buildOrderBy($orderBy);
-        if ($orderByStatment !== '') {
-            $sql .= $this->separator . $orderByStatment;
-        }
 
         $limitOffsetStatment = $this->buildLimit($limit, $offset);
         if ($limitOffsetStatment != '') {
             $sql = str_replace(':query', $sql, $limitOffsetStatment);
+            $sql = str_replace(':order', $orderByStatment,$sql);
+        }else{
+            if ($orderByStatment !== '') {
+                $sql .= $this->separator . $orderByStatment;
+            }
         }
         return $sql;
     }
@@ -147,12 +149,12 @@ class QueryBuilder extends \yii\db\QueryBuilder
             return '';
         }
 
-        $limitOffsetStatment = 'SELECT * FROM (SELECT SUBQUERY_.*, ROW_NUMBER() OVER() AS RN_ FROM ( :query ) AS SUBQUERY_) WHERE :offset :limit';
+        $limitOffsetStatment = 'SELECT * FROM (SELECT SUBQUERY_.*, ROW_NUMBER() OVER(:order) AS RN_ FROM ( :query ) AS SUBQUERY_) as t WHERE :offset :limit';
 
-        $replacement = $this->hasOffset($offset) ? 'RN_ > ' . $offset : 'RN_ > 0';
+        $replacement = $this->hasOffset($offset) ? 't.RN_ > ' . $offset : 't.RN_ > 0';
         $limitOffsetStatment = str_replace(':offset', $replacement, $limitOffsetStatment);
 
-        $replacement = $this->hasLimit($limit) ? 'AND RN_ <= ' . ($limit + $offset) : '';
+        $replacement = $this->hasLimit($limit) ? 'AND t.RN_ <= ' . ($limit + $offset) : '';
         $limitOffsetStatment = str_replace(':limit', $replacement, $limitOffsetStatment);
 
         return $limitOffsetStatment;
