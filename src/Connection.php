@@ -58,6 +58,22 @@ class Connection extends \yii\db\Connection
     ];
     
     /**
+     * Initializes the DB connection.
+     * This method is invoked right after the DB connection is established.
+     * The default implementation turns on `PDO::ATTR_EMULATE_PREPARES`
+     * if [[emulatePrepare]] is true, and sets the database [[charset]] if it is not empty.
+     * It then triggers an [[EVENT_AFTER_OPEN]] event.
+     */
+    protected function initConnection()
+    {
+        parent::initConnection();
+
+        if($this->defaultSchema){
+            $this->pdo->exec('SET SCHEMA ' . $this->pdo->quote($this->defaultSchema));
+        }
+    }
+
+    /**
      * Creates a command for execution.
      * @param string $sql the SQL statement to be executed
      * @param array $params the parameters to be bound to the SQL statement

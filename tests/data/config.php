@@ -8,11 +8,12 @@
 $config = [
     'databases' => [
         'ibm' => [
-            'class'    => '\edgardmessias\db\ibm\db2\Connection',
-            'dsn'      => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=test;"HOSTNAME=127.0.0.1;PORT=50000;PROTOCOL=TCPIP',
-            'username' => 'test',
-            'password' => 'test',
-            'fixture'  => __DIR__ . '/source.sql',
+            'class'         => '\edgardmessias\db\ibm\db2\Connection',
+            'dsn'           => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=test;"HOSTNAME=127.0.0.1;PORT=50000;PROTOCOL=TCPIP',
+            'username'      => 'test',
+            'password'      => 'test',
+            'defaultSchema' => 'test',
+            'fixture'       => __DIR__ . '/source.sql',
         ]
     ],
 ];
