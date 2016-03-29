@@ -15,6 +15,17 @@ class ConnectionTest extends \yiiunit\framework\db\ConnectionTest
 
     protected $driverName = 'ibm';
     
+    public function testSerialize()
+    {
+        $connection = $this->getConnection(false, false);
+        $connection->open();
+        $serialized = serialize($connection);
+        $unserialized = unserialize($serialized);
+        $this->assertInstanceOf('yii\db\Connection', $unserialized);
+
+        $this->assertEquals(123, $unserialized->createCommand("SELECT 123 from SYSIBM.SYSDUMMY1")->queryScalar());
+    }
+
     public function testQuoteValue()
     {
         $connection = $this->getConnection(false);
