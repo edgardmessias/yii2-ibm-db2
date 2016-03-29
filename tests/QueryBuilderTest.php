@@ -99,12 +99,12 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
     {
         $conditions = parent::conditionProvider();
 
-        $conditions[49] = [ ['in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
-        $conditions[50] = [ ['not in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") NOT IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
+        $conditions[53] = [ ['in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
+        $conditions[54] = [ ['not in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") NOT IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
 
         //Remove composite IN
-        unset($conditions[51]);
-        unset($conditions[52]);
+//        unset($conditions[51]);
+//        unset($conditions[52]);
 
         return $conditions;
     }
