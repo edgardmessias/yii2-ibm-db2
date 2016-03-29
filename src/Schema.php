@@ -458,6 +458,15 @@ SQL;
     }
     
     /**
+     * Creates a new savepoint.
+     * @param string $name the savepoint name
+     */
+    public function createSavepoint($name)
+    {
+        $this->db->createCommand("SAVEPOINT $name ON ROLLBACK RETAIN CURSORS")->execute();
+    }
+
+    /**
      * Sets the isolation level of the current transaction.
      * @param string $level The transaction isolation level to use for this transaction.
      * This can be one of [[Transaction::READ_UNCOMMITTED]], [[Transaction::READ_COMMITTED]], [[Transaction::REPEATABLE_READ]]
