@@ -24,6 +24,16 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
         return new QueryBuilder($connection);
     }
     
+    /**
+     * adjust dbms specific escaping
+     * @param $sql
+     * @return mixed
+     */
+    protected function replaceQuotes($sql)
+    {
+        return str_replace(['[[', ']]'], '"', $sql);
+    }
+
     public function columnTypes()
     {
         return [
