@@ -108,4 +108,17 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
 
         return $conditions;
     }
+
+    public function testAddDropPrimaryKey()
+    {
+        $tableName = 'constraints';
+
+        // Change field1 to not null
+        $qb = $this->getQueryBuilder();
+        $qb->db->createCommand('ALTER TABLE "' . $tableName . '" ALTER COLUMN "field1" SET not null')->execute();
+        $qb->db->schema->refreshTableSchema($tableName);
+
+        parent::testAddDropPrimaryKey();
+    }
+
 }
