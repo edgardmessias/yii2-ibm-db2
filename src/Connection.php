@@ -69,7 +69,7 @@ class Connection extends \yii\db\Connection
         parent::initConnection();
 
         if($this->defaultSchema){
-            $this->pdo->exec('SET SCHEMA ' . $this->pdo->quote($this->defaultSchema));
+            $this->pdo->exec('SET CURRENT SCHEMA ' . $this->pdo->quote($this->defaultSchema));
         }
     }
 
