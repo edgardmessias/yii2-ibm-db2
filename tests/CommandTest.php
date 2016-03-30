@@ -92,8 +92,8 @@ SQL;
     public function paramsNonWhereProvider()
     {
         return[
-            ['SELECT SUBSTR([[name]], :len) FROM {{customer}} WHERE [[email]] = :email GROUP BY SUBSTR([[name]], :len)'],
-            ['SELECT SUBSTR([[name]], :len) FROM {{customer}} WHERE [[email]] = :email ORDER BY SUBSTR([[name]], :len)'],
+            ['SELECT SUBSTR([[name]], :len) AS [[name]] FROM {{customer}} WHERE [[email]] = :email GROUP BY [[name]]'],
+            ['SELECT SUBSTR([[name]], :len) AS [[name]] FROM {{customer}} WHERE [[email]] = :email ORDER BY [[name]]'],
             ['SELECT SUBSTR([[name]], :len) FROM {{customer}} WHERE [[email]] = :email'],
         ];
     }
