@@ -126,13 +126,28 @@ class QueryBuilder extends \yii\db\QueryBuilder
      */
     public function buildOrderByAndLimit($sql, $orderBy, $limit, $offset)
     {
-        $orderByStatment = $this->buildOrderBy($orderBy);
-
         $limitOffsetStatment = $this->buildLimit($limit, $offset);
         if ($limitOffsetStatment != '') {
             $sql = str_replace(':query', $sql, $limitOffsetStatment);
+
+            //convert "item"."id" to "id" to use in OVER()
+            $newOrderBy = [];
+
+            if(!empty($orderBy)){
+                foreach ($orderBy as $name => $direction) {
+                    if(is_string($name)){
+                        $e = explode('.', $name);
+                        $name = array_pop($e);
+                    }
+                    $newOrderBy[$name] = $direction;
+                }
+            }
+
+            $orderByStatment = $this->buildOrderBy($newOrderBy);
+
             $sql = str_replace(':order', $orderByStatment,$sql);
         }else{
+            $orderByStatment = $this->buildOrderBy($orderBy);
             if ($orderByStatment !== '') {
                 $sql .= $this->separator . $orderByStatment;
             }
