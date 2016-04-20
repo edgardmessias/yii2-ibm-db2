@@ -248,4 +248,16 @@ class QueryBuilder extends \yii\db\QueryBuilder
         . (!empty($names) ? ' (' . implode(', ', $names) . ')' : '')
         . ' VALUES (' . implode(', ', $placeholders) . ')';
     }
+    
+    /**
+     * Creates a SELECT EXISTS() SQL statement.
+     * @param string $rawSql the subquery in a raw form to select from.
+     * @return string the SELECT EXISTS() SQL statement.
+     *
+     * @since 2.0.8
+     */
+    public function selectExists($rawSql)
+    {
+        return 'SELECT CASE WHEN EXISTS(' . $rawSql . ') THEN 1 ELSE 0 END FROM SYSIBM.SYSDUMMY1';
+    }
 }
