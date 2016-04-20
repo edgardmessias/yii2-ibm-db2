@@ -260,4 +260,29 @@ class QueryBuilder extends \yii\db\QueryBuilder
     {
         return 'SELECT CASE WHEN EXISTS(' . $rawSql . ') THEN 1 ELSE 0 END FROM SYSIBM.SYSDUMMY1';
     }
+
+    /**
+     * Builds a SQL command for adding comment to column
+     *
+     * @param string $table the table whose column is to be commented. The table name will be properly quoted by the method.
+     * @param string $column the name of the column to be commented. The column name will be properly quoted by the method.
+     * @return string the SQL statement for adding comment on column
+     * @since 2.0.8
+     */
+    public function dropCommentFromColumn($table, $column)
+    {
+        return 'COMMENT ON COLUMN ' . $this->db->quoteTableName($table) . '.' . $this->db->quoteColumnName($column) . " IS ''";
+    }
+
+    /**
+     * Builds a SQL command for adding comment to table
+     *
+     * @param string $table the table whose column is to be commented. The table name will be properly quoted by the method.
+     * @return string the SQL statement for adding comment on column
+     * @since 2.0.8
+     */
+    public function dropCommentFromTable($table)
+    {
+        return 'COMMENT ON TABLE ' . $this->db->quoteTableName($table) . " IS ''";
+    }
 }
