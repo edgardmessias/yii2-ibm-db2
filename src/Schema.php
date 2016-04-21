@@ -22,6 +22,10 @@ use yii\db\Transaction;
 class Schema extends \yii\db\Schema
 {
 
+    /**
+     * Fix to work in Yii2 2.0.7
+     */
+    const TYPE_CHAR = 'char';
 
     public $typeMap = [
         'character'  => self::TYPE_CHAR,
