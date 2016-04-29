@@ -19,6 +19,7 @@ sudo: true
 cache:
   directories:
     - $HOME/.composer/cache
+    - $HOME/download
 
 before_install:
   # Parallel download
@@ -26,10 +27,12 @@ before_install:
   - sudo apt-get install aria2 curl -y
 
   # Retrieves and extracts the DB2 binaries
-  - travis_retry export DOWNLOAD_LINK=$(phantomjs --ssl-protocol=tlsv1 ./tests/ci/travis/download.js | tail -1 | grep http)
+  - if [ ! -d $HOME/download ]; then mkdir $HOME/download; fi
+  - DOWNLOAD_FILE=v10.5_linuxx64_expc.tar.gz
+  - if [ ! -f $HOME/download/${DOWNLOAD_FILE} ]; then travis_retry export DOWNLOAD_LINK=$(phantomjs --ssl-protocol=tlsv1 ${TRAVIS_BUILD_DIR}/tests/ci/travis/download.js | tail -1 | grep http); fi
+  - if [ ! -f $HOME/download/${DOWNLOAD_FILE} ]; then travis_retry aria2c -x 16 -d $HOME/download -o ${DOWNLOAD_FILE} ${DOWNLOAD_LINK}; fi
+  - cp $HOME/download/${DOWNLOAD_FILE} /tmp
   - cd /tmp
-  - travis_retry aria2c -x 16 ${DOWNLOAD_LINK}
-  - DOWNLOAD_FILE=$(ls *.tar.gz)
   - tar zxvf ${DOWNLOAD_FILE}
 
   # INSTALL
@@ -59,12 +62,18 @@ before_install:
 
 install:
   - cd ${TRAVIS_BUILD_DIR}
+  #enabling pdo_ibm
   - echo "extension=pdo_ibm.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
   - php -m | grep -i pdo
+
+  #preparing Yii2 environment
   - travis_retry composer self-update && composer --version
   - travis_retry composer global require "fxp/composer-asset-plugin:~1.1.3" --prefer-dist --no-interaction
   - export PATH="$HOME/.composer/vendor/bin:$PATH"
+
+  #installing composer dependency
   - travis_retry composer install --prefer-dist --no-interaction
+  #needed to use tests of Yii2
   - rm vendor/yiisoft/yii2-dev -Rf
   - travis_retry composer install --prefer-source -o --no-interaction
 
