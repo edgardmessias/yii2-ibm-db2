@@ -1,9 +1,9 @@
 IBM DB2 Extension for Yii 2 (yii2-ibm-db2)
 ============================================
-[![Latest Stable Version](https://poser.pugx.org/edgardmessias/yii2-yii2-ibm-db2/v/stable)](https://packagist.org/packages/edgardmessias/yii2-yii2-ibm-db2)
-[![Total Downloads](https://poser.pugx.org/edgardmessias/yii2-yii2-ibm-db2/downloads)](https://packagist.org/packages/edgardmessias/yii2-yii2-ibm-db2)
-[![Latest Unstable Version](https://poser.pugx.org/edgardmessias/yii2-yii2-ibm-db2/v/unstable)](https://packagist.org/packages/edgardmessias/yii2-yii2-ibm-db2)
-[![License](https://poser.pugx.org/edgardmessias/yii2-yii2-ibm-db2/license)](https://packagist.org/packages/edgardmessias/yii2-yii2-ibm-db2)
+[![Latest Stable Version](https://poser.pugx.org/edgardmessias/yii2-ibm-db2/v/stable)](https://packagist.org/packages/edgardmessias/yii2-ibm-db2)
+[![Total Downloads](https://poser.pugx.org/edgardmessias/yii2-ibm-db2/downloads)](https://packagist.org/packages/edgardmessias/yii2-ibm-db2)
+[![Latest Unstable Version](https://poser.pugx.org/edgardmessias/yii2-ibm-db2/v/unstable)](https://packagist.org/packages/edgardmessias/yii2-ibm-db2)
+[![License](https://poser.pugx.org/edgardmessias/yii2-ibm-db2/license)](https://packagist.org/packages/edgardmessias/yii2-ibm-db2)
 
 This extension adds [IBM DB2](http://www-01.ibm.com/software/data/db2/) database engine extension for the [Yii framework 2.0](http://www.yiiframework.com).
 
@@ -11,8 +11,8 @@ This extension adds [IBM DB2](http://www-01.ibm.com/software/data/db2/) database
 [![Build Status](https://travis-ci.org/edgardmessias/yii2-ibm-db2.svg?branch=master)](https://travis-ci.org/edgardmessias/yii2-ibm-db2)
 [![Dependency Status](https://www.versioneye.com/php/edgardmessias:yii2-ibm-db2/dev-master/badge.png)](https://www.versioneye.com/php/edgardmessias:yii2-ibm-db2/dev-master)
 [![Reference Status](https://www.versioneye.com/php/edgardmessias:yii2-ibm-db2/reference_badge.svg)](https://www.versioneye.com/php/edgardmessias:yii2-ibm-db2/references)
-[![Code Coverage](https://scrutinizer-ci.com/g/edgardmessias/yii2-yii2-ibm-db2/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/edgardmessias/yii2-yii2-ibm-db2/?branch=master)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/edgardmessias/yii2-yii2-ibm-db2/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/edgardmessias/yii2-yii2-ibm-db2/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/edgardmessias/yii2-ibm-db2/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/edgardmessias/yii2-ibm-db2/?branch=master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/edgardmessias/yii2-ibm-db2/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/edgardmessias/yii2-ibm-db2/?branch=master)
 
 Requirements
 ------------
