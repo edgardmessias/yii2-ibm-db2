@@ -18,6 +18,11 @@ class Connection extends \yii\db\Connection
 {
 
     /**
+     * @inheritdoc
+     */
+    public $commandClass = 'edgardmessias\db\ibm\db2\Command';
+
+    /**
      * @var bool|null set to true if working on iSeries
      */
 
@@ -71,7 +76,7 @@ class Connection extends \yii\db\Connection
         if($this->defaultSchema){
             $this->pdo->exec('SET CURRENT SCHEMA ' . $this->pdo->quote($this->defaultSchema));
         }
-
+        
         if($this->isISeries === null){
             try {
                 $stmt = $this->pdo->query('SELECT * FROM QSYS2.SYSTABLES FETCH FIRST 1 ROW ONLY');
@@ -82,21 +87,4 @@ class Connection extends \yii\db\Connection
         }
     }
 
-    /**
-     * Creates a command for execution.
-     * @param string $sql the SQL statement to be executed
-     * @param array $params the parameters to be bound to the SQL statement
-     * @return Command the DB command
-     */
-    public function createCommand($sql = null, $params = [])
-    {
-        $command = new Command([
-            'db' => $this,
-            'sql' => $sql,
-        ]);
-
-        return $command->bindValues($params);
-    }
-
-    
 }
