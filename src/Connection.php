@@ -18,10 +18,10 @@ class Connection extends \yii\db\Connection
 {
 
     /**
-     * @var bool set to true if working on iSeries
+     * @var bool|null set to true if working on iSeries
      */
 
-    public $isISeries;
+    public $isISeries = null;
 
 
     /**
@@ -70,6 +70,15 @@ class Connection extends \yii\db\Connection
 
         if($this->defaultSchema){
             $this->pdo->exec('SET CURRENT SCHEMA ' . $this->pdo->quote($this->defaultSchema));
+        }
+
+        if($this->isISeries === null){
+            try {
+                $stmt = $this->pdo->query('SELECT * FROM QSYS2.SYSTABLES FETCH FIRST 1 ROW ONLY');
+                $this->isIseries = boolval($stmt);
+            } catch (Exception $ex) {
+                $this->isIseries = false;
+            }
         }
     }
 

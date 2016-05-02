@@ -54,24 +54,6 @@ class Schema extends \yii\db\Schema
         'timestmp'   => self::TYPE_TIMESTAMP
     ];
 
-   /* public $_isIseries = null;
-
-    public function isISeries() {
-        if ($this->_isIseries !== null) {
-            return $this->_isIseries;
-        }
-        try {
-            $sql = "SELECT * FROM QSYS2.SYSTABLES FETCH FIRST 1 ROW ONLY";
-            $command = $this->db->createCommand($sql);
-            $stmt = $command->execute();
-            $this->_isIseries = (bool) $stmt;
-            return $this->_isIseries;
-        } catch (Exception $ex) {
-            $this->_isIseries = false;
-            return $this->_isIseries;
-        }
-    }*/
-
    /**
      * @inheritdoc
      */
