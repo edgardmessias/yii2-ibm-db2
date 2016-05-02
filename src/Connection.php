@@ -80,9 +80,9 @@ class Connection extends \yii\db\Connection
         if($this->isISeries === null){
             try {
                 $stmt = $this->pdo->query('SELECT * FROM QSYS2.SYSTABLES FETCH FIRST 1 ROW ONLY');
-                $this->isIseries = boolval($stmt);
-            } catch (Exception $ex) {
-                $this->isIseries = false;
+                $this->isISeries = boolval($stmt);
+            } catch (\Exception $ex) {
+                $this->isISeries = false;
             }
         }
     }
