@@ -17,7 +17,7 @@ This extension adds [IBM DB2](http://www-01.ibm.com/software/data/db2/) database
 Requirements
 ------------
  * IBM DB2 Client SDK installed
- * PHP module pdo_ibm
+ * PHP module pdo_ibm or pdo_odbc
  * IBM DB2 Database Server 10.1 or greater
 
 Installation
