@@ -44,4 +44,15 @@ trait DatabaseTestTrait
         }
         return $db;
     }
+
+    /**
+     * adjust dbms specific escaping
+     * @param $sql
+     * @return mixed
+     */
+    protected function replaceQuotes($sql)
+    {
+        return str_replace(['[[', ']]'], '"', $sql);
+    }
+
 }

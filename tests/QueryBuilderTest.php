@@ -4,6 +4,7 @@ namespace edgardmessias\unit\db\ibm\db2;
 
 use edgardmessias\db\ibm\db2\QueryBuilder;
 use edgardmessias\db\ibm\db2\Schema;
+use yiiunit\data\base\TraversableObject;
 
 /**
  * @group ibm_db2
@@ -24,16 +25,6 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
         return new QueryBuilder($connection);
     }
     
-    /**
-     * adjust dbms specific escaping
-     * @param $sql
-     * @return mixed
-     */
-    protected function replaceQuotes($sql)
-    {
-        return str_replace(['[[', ']]'], '"', $sql);
-    }
-
     public function columnTypes()
     {
         return [
@@ -99,8 +90,21 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
     {
         $conditions = parent::conditionProvider();
 
-        $conditions[53] = [ ['in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
-        $conditions[54] = [ ['not in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") NOT IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
+        $conditions['composite in'] = [
+            ['in', ['id', 'name'], [['id' => 1, 'name' => 'oy']]],
+            '([[id]], [[name]]) IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1)',
+            [':qp0' => 1, ':qp1' => 'oy']
+        ];
+        $conditions['composite in using array objects'] = [
+            ['in', new TraversableObject(['id', 'name']), new TraversableObject([
+                ['id' => 1, 'name' => 'oy'],
+                ['id' => 2, 'name' => 'yo'],
+            ])],
+            '([[id]], [[name]]) IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)',
+            [':qp0' => 1, ':qp1' => 'oy', ':qp2' => 2, ':qp3' => 'yo']
+        ];
+        $conditions[57] = [ ['in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
+        $conditions[58] = [ ['not in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") NOT IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
 
         //Remove composite IN
         //unset($conditions[51]);
