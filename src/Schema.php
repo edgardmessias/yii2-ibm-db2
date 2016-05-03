@@ -23,15 +23,15 @@ class Schema extends \yii\db\Schema
 {
 
     public $typeMap = [
-        'character'  => self::TYPE_STRING,
+        'character'  => self::TYPE_CHAR,
         'varchar'    => self::TYPE_STRING,
-        'char'       => self::TYPE_STRING,
+        'char'       => self::TYPE_CHAR,
         'clob'       => self::TYPE_TEXT,
         'graphic'    => self::TYPE_STRING,
         'vargraphic' => self::TYPE_STRING,
         'varg'       => self::TYPE_STRING,
         'dbclob'     => self::TYPE_TEXT,
-        'nchar'      => self::TYPE_STRING,
+        'nchar'      => self::TYPE_CHAR,
         'nvarchar'   => self::TYPE_STRING,
         'nclob'      => self::TYPE_TEXT,
         'binary'     => self::TYPE_BINARY,

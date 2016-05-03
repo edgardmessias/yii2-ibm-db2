@@ -204,13 +204,13 @@ class QueryBuilder extends \yii\db\QueryBuilder
             }
             $vss[] = 'select ' . implode(', ', $vs) . ' from SYSIBM.SYSDUMMY1';
         }
+
+        $sqlColumns = [];
         foreach ($columns as $i => $column) {
-            if (strpos($column, '(') === false) {
-                $columns[$i] = $this->db->quoteColumnName($column);
-            }
+            $sqlColumns[] = strpos($column, '(') === false ? $this->db->quoteColumnName($column) : $column;
         }
 
-        return '(' . implode(', ', $columns) . ") $operator (" . implode(' UNION ', $vss) . ')';
+        return '(' . implode(', ', $sqlColumns) . ") $operator (" . implode(' UNION ', $vss) . ')';
     }
 
     /**
