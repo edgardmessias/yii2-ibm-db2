@@ -14,6 +14,7 @@ matrix:
     - php: nightly
 
 sudo: true
+dist: trusty
 
 # cache composer dirs
 cache:
@@ -28,7 +29,7 @@ before_install:
 
   # Retrieves and extracts the DB2 binaries
   - if [ ! -d $HOME/download ]; then mkdir $HOME/download; fi
-  - DOWNLOAD_FILE=v10.5_linuxx64_expc.tar.gz
+  - DOWNLOAD_FILE=v11.1_linuxx64_expc.tar.gz
   - if [ ! -f $HOME/download/${DOWNLOAD_FILE} ]; then travis_retry export DOWNLOAD_LINK=$(phantomjs --ssl-protocol=tlsv1 ${TRAVIS_BUILD_DIR}/tests/ci/travis/download.js | tail -1 | grep http); fi
   - if [ ! -f $HOME/download/${DOWNLOAD_FILE} ]; then travis_retry aria2c -x 16 -d $HOME/download -o ${DOWNLOAD_FILE} ${DOWNLOAD_LINK}; fi
   - cp $HOME/download/${DOWNLOAD_FILE} /tmp
@@ -37,12 +38,12 @@ before_install:
 
   # INSTALL
   # Install the required libraries
-  - sudo apt-get install libaio1 lib32stdc++6 -y
+  - sudo apt-get install rpm libaio1 lib32stdc++6 linux-source build-essential binutils -y
   - sudo apt-get install -qq libpam-ldap:i386
   - sudo ln -s /lib/i386-linux-gnu/libpam.so.0 /lib/libpam.so.0
 
   # Checks the prerequisites
-  - cd /tmp/expc ; ./db2prereqcheck -l
+  - cd /tmp/expc ; ./db2prereqcheck -l || echo invalid
   # Install DB2 and creates an instance (Response file)
   - sudo ./db2setup -r  ${TRAVIS_BUILD_DIR}/tests/ci/travis/db2.rsp
   # Create user
