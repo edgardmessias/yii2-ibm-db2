@@ -55,7 +55,7 @@ return [
     'components' => [
         'db' => [
             'class'         => 'edgardmessias\db\ibm\db2\Connection',
-            'dsn'           => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=test;"HOSTNAME=127.0.0.1;PORT=50000;PROTOCOL=TCPIP',
+            'dsn'           => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=test;HOSTNAME=127.0.0.1;PORT=50000;PROTOCOL=TCPIP',
             'username'      => 'username',
             'password'      => 'password',
             'defaultSchema' => '',
