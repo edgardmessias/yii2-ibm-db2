@@ -73,10 +73,6 @@ class Connection extends \yii\db\Connection
     {
         parent::initConnection();
 
-        if($this->defaultSchema){
-            $this->pdo->exec('SET CURRENT SCHEMA ' . $this->pdo->quote($this->defaultSchema));
-        }
-        
         if($this->isISeries === null){
             try {
                 $stmt = $this->pdo->query('SELECT * FROM QSYS2.SYSTABLES FETCH FIRST 1 ROW ONLY');
@@ -85,6 +81,11 @@ class Connection extends \yii\db\Connection
                 $this->isISeries = false;
             }
         }
+
+        if($this->defaultSchema && !$this->isISeries){
+            $this->pdo->exec('SET CURRENT SCHEMA ' . $this->pdo->quote($this->defaultSchema));
+        }
+        
     }
 
 }
