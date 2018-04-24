@@ -13,6 +13,8 @@ use yii\db\Expression;
 
 /**
  * QueryBuilder is the query builder for DB2 databases.
+ * 
+ * @property Connection $db Connetion
  *
  * @author Edgard Lorraine Messias <edgardmessias@gmail.com>
  * @author Nikita Verkhovin <vernik91@gmail.com>
@@ -85,6 +87,10 @@ class QueryBuilder extends \yii\db\QueryBuilder
         if ($table) {
             $tableNames = [$table];
         } else {
+            if (!$schema) {
+                $schema = $this->db->defaultSchema;
+            }
+
             //Return only tables
             $sql = "SELECT t.tabname FROM syscat.tables AS t"
                     . " WHERE t.type in ('T') AND t.ownertype != 'S'";
