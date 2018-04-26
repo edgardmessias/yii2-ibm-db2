@@ -64,6 +64,7 @@ before_install:
   # Install pdo_ibm
   - export DB2DIR=/home/db2inst1/sqllib
   - (mkdir pdo_ibm; cd pdo_ibm/; curl https://pecl.php.net/get/PDO_IBM -o pdo_ibm.tar.gz; tar -zxvf pdo_ibm.tar.gz --strip 1)
+  - (cd pdo_ibm/; patch < ${TRAVIS_BUILD_DIR}/tests/ci/travis/php7.patch)
   - (cd pdo_ibm/; phpize && ./configure --with-pdo-ibm=${DB2DIR} && make && sudo make install)
 
 install:

@@ -1,0 +1,16 @@
+diff -Naur pdo_ibm/ibm_driver.c pdo_ibm2/ibm_driver.c
+--- pdo_ibm/ibm_driver.c	2017-11-15 07:41:54.000000000 -0200
++++ pdo_ibm2/ibm_driver.c	2018-04-26 09:51:38.498661862 -0300
+@@ -979,10 +979,11 @@
+ 		
+ #if PHP_MAJOR_VERSION >= 7
+                         if (Z_TYPE_P(data) == IS_STRING) {
++				option_str = Z_STRVAL_P(data);
+ #else	
+ 			if (Z_TYPE_PP(data) == IS_STRING) {
+-#endif
+ 				option_str = Z_STRVAL_PP(data);
++#endif
+ 			} else {
+ #if PHP_MAJOR_VERSION >= 7
+ 				option_num = Z_LVAL_P(data);
