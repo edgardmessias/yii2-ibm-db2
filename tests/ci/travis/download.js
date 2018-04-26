@@ -10,22 +10,24 @@ function loginIBM(status) {
 
     page.onLoadFinished = downloadPage;
     page.evaluate(function () {
-        document.getElementById('firstName').value = 'test';
-        document.getElementById('lastName').value = 'travis';
-        document.getElementById('emailAddress').value = 'travis@test.tst';
-        document.getElementById('phone').value = '0000-0000';
-        document.getElementById('company').value = 'test for travis';
-        document.getElementById('countryResidence').value = 'US';
-        document.getElementById('state').innerHTML = '<option value="AK">Alaska</option>';
-        document.getElementById('state').value = 'AK';
+        setTimeout(function (){            
+            document.getElementById('firstName').value = 'test';
+            document.getElementById('lastName').value = 'travis';
+            document.getElementById('emailAddress').value = 'travis@test.tst';
+            document.getElementById('phone').value = '0000-0000';
+            document.getElementById('company').value = 'test for travis';
+            document.getElementById('countryResidence').value = 'US';
+            document.getElementById('state').innerHTML = '<option value="AK">Alaska</option>';
+            document.getElementById('state').value = 'AK';
 
-        document.getElementById('NC_CHECK_EMAIL').checked = false;
-        document.getElementById('NC_CHECK_PHONE').checked = false;
-        document.getElementById('NC_CHECK_POSTAL').checked = false;
+            document.getElementById('NC_CHECK_EMAIL').checked = false;
+            document.getElementById('NC_CHECK_PHONE').checked = false;
+            document.getElementById('NC_CHECK_POSTAL').checked = false;
 
-        document.getElementById('licenseAccepted').checked = true;
+            document.getElementById('licenseAccepted').checked = true;
 
-        document.forms[1].submit();
+            document.forms[1].submit();
+        }, 3000);
     });
 }
 
@@ -82,9 +84,9 @@ page.onConsoleMessage = function (msg) {
 };
 
 page.onResourceError = function (error) {
-//    system.stderr.writeLine(JSON.stringify(error));
+    //    system.stderr.writeLine(JSON.stringify(error));
     system.stderr.writeLine(error.url + ': ' + error.errorString);
-//    phantom.exit(1);
+    //    phantom.exit(1);
 }
 
 page.onLoadFinished = loginIBM;
