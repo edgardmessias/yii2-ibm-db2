@@ -27,6 +27,90 @@ class CommandTest extends \yiiunit\framework\db\CommandTest
         $this->assertEquals('SELECT "id", "t"."name" FROM "customer" t', $command->sql);
     }
 
+    public function testBindParamSmallint()
+    {
+        $db = $this->getConnection();
+        
+        $sql = <<<SQL
+INSERT INTO {{single_smallint}} ([[field]])
+  VALUES (:field)
+SQL;
+        $command = $db->createCommand($sql);
+        $value = 1;
+        $command->bindParam(':field', $value);
+        $this->assertEquals(1, $command->execute());
+    }
+
+    public function testBindParamSmallintString()
+    {
+        $db = $this->getConnection();
+        
+        $sql = <<<SQL
+INSERT INTO {{single_smallint}} ([[field]])
+  VALUES (:field)
+SQL;
+        $command = $db->createCommand($sql);
+        $value = 1;
+        $command->bindParam(':field', $value, PDO::PARAM_STR);
+        $this->assertEquals(1, $command->execute());
+    }
+
+    public function testBindParamSmallintNull()
+    {
+        $db = $this->getConnection();
+        
+        $sql = <<<SQL
+INSERT INTO {{single_smallint}} ([[field]])
+  VALUES (:field)
+SQL;
+        $command = $db->createCommand($sql);
+        $value = null;
+        $command->bindParam(':field', $value, PDO::PARAM_STR);
+        $this->assertEquals(1, $command->execute());
+    }
+
+    public function testBindValueSmallint()
+    {
+        $db = $this->getConnection();
+        
+        $sql = <<<SQL
+INSERT INTO {{single_smallint}} ([[field]])
+  VALUES (:field)
+SQL;
+        $command = $db->createCommand($sql);
+        $value = 1;
+        $command->bindValue(':field', $value);
+        $this->assertEquals(1, $command->execute());
+    }
+
+    public function testBindValueSmallintString()
+    {
+        $db = $this->getConnection();
+        
+        $sql = <<<SQL
+INSERT INTO {{single_smallint}} ([[field]])
+  VALUES (:field)
+SQL;
+        $command = $db->createCommand($sql);
+        $value = 1;
+        $command->bindValue(':field', $value, PDO::PARAM_STR);
+        $this->assertEquals(1, $command->execute());
+    }
+
+    public function testBindValueSmallintNull()
+    {
+        $db = $this->getConnection();
+        
+        $sql = <<<SQL
+INSERT INTO {{single_smallint}} ([[field]])
+  VALUES (:field)
+SQL;
+        $command = $db->createCommand($sql);
+        $value = null;
+        $command->bindValue(':field', $value, PDO::PARAM_STR);
+        $this->assertEquals(1, $command->execute());
+    }
+
     public function testBindParamValue()
     {
         $db = $this->getConnection();

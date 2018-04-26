@@ -24,9 +24,14 @@ BEGIN
   EXECUTE IMMEDIATE 'DROP TABLE "validator_ref"';
   EXECUTE IMMEDIATE 'DROP TABLE "bit_values"';
   EXECUTE IMMEDIATE 'DROP VIEW "animal_view"';
+  EXECUTE IMMEDIATE 'DROP TABLE "single_smallint"';
 END;--
 
 /* STATEMENTS */
+
+CREATE TABLE "single_smallint" (
+  "field" smallint
+);
 
 CREATE TABLE "constraints" (
   "id" integer not null,
