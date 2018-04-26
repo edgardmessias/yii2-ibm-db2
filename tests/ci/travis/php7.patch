@@ -1,7 +1,108 @@
 diff -Naur pdo_ibm/ibm_driver.c pdo_ibm2/ibm_driver.c
 --- pdo_ibm/ibm_driver.c	2017-11-15 07:41:54.000000000 -0200
-+++ pdo_ibm2/ibm_driver.c	2018-04-26 09:51:38.498661862 -0300
-@@ -979,10 +979,11 @@
++++ pdo_ibm2/ibm_driver.c	2018-04-26 10:50:28.029131730 -0300
+@@ -55,7 +55,7 @@
+ }
+ 
+ /* prepare a statement for execution. */
+-static int dbh_prepare_stmt(pdo_dbh_t *dbh, pdo_stmt_t *stmt, const char *stmt_string, long stmt_len, zval *driver_options TSRMLS_DC)
++static int dbh_prepare_stmt(pdo_dbh_t *dbh, pdo_stmt_t *stmt, const char *stmt_string, size_t stmt_len, zval *driver_options TSRMLS_DC)
+ {
+ 	conn_handle *conn_res = (conn_handle *) dbh->driver_data;
+ 	stmt_handle *stmt_res = (stmt_handle *) stmt->driver_data;
+@@ -69,7 +69,7 @@
+ 	SQLSMALLINT server_len = 0;
+ 
+ 	/* in case we need to convert the statement for positional syntax */
+-	int converted_len = 0;
++	size_t converted_len = 0;
+ 	stmt_res->converted_statement = NULL;
+ 
+ 	/* clear the current error information to get ready for new execute */
+@@ -253,7 +253,7 @@
+ static int ibm_handle_preparer(
+ 	pdo_dbh_t *dbh,
+ 	const char *sql,
+-	long sql_len,
++	size_t sql_len,
+ 	pdo_stmt_t *stmt,
+ 	zval *driver_options
+ 	TSRMLS_DC)
+@@ -274,7 +274,7 @@
+ static long ibm_handle_doer(
+ 	pdo_dbh_t *dbh,
+ 	const char *sql,
+-	long sql_len
++	size_t sql_len
+ 	TSRMLS_DC)
+ {
+ 	conn_handle *conn_res = (conn_handle *) dbh->driver_data;
+@@ -520,9 +520,10 @@
+ }
+ 
+ /* fetch the last inserted id */
+-static char *ibm_handle_lastInsertID(pdo_dbh_t * dbh, const char *name, unsigned int *len TSRMLS_DC)
++static char *ibm_handle_lastInsertID(pdo_dbh_t * dbh, const char *name, size_t *len TSRMLS_DC)
+ {
+ 	char *last_id = emalloc( MAX_IDENTITY_DIGITS );
++	strcpy(last_id, "0");
+ 	int rc = 0;
+ 	char *sql;
+ 	conn_handle *conn_res = (conn_handle *) dbh->driver_data;
+@@ -552,7 +553,7 @@
+ 				"SQLExecDirect", __FILE__, __LINE__ TSRMLS_CC);
+ 			SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+ 
+-			return FALSE;
++			return NULL;
+ 		}
+ 
+ 		rc = SQLBindCol(hstmt, 1, SQL_C_CHAR, last_id, MAX_IDENTITY_DIGITS, &out_length);
+@@ -565,7 +566,7 @@
+ 				"SQLBindCol", __FILE__, __LINE__ TSRMLS_CC);
+ 			SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+ 
+-			return FALSE;
++			return NULL;
+ 		}
+ 		/* go fetch it. */
+ 		rc = SQLFetch(hstmt);
+@@ -578,7 +579,7 @@
+ 				"SQLFetch", __FILE__, __LINE__ TSRMLS_CC);
+ 			SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+ 
+-			return FALSE;
++			return NULL;
+ 		}
+ 		/* this is a one-shot deal, so make sure we free the statement handle */
+ 		*len = strlen(last_id);
+@@ -641,9 +642,9 @@
+ static int ibm_handle_quoter(
+ 	pdo_dbh_t *dbh,
+ 	const char *unq,
+-	int unq_len,
++	size_t unq_len,
+ 	char **q,
+-	int *q_len,
++	size_t *q_len,
+ 	enum pdo_param_type paramtype
+ 	TSRMLS_DC)
+ {
+@@ -953,11 +954,12 @@
+ 	if (driver_options != NULL) {
+ 		int i = 0;
+ 		ulong num_idx;
+-		char *opt_key;
+ #if PHP_MAJOR_VERSION >= 7
+ 		zend_long option_num = 0;
++		zend_string *opt_key = NULL;
+ 		zval *data;
+ #else
++		char *opt_key;
+ 		zval **data;
+ 		long option_num = 0;
+ #endif
+@@ -979,10 +981,11 @@
  		
  #if PHP_MAJOR_VERSION >= 7
                          if (Z_TYPE_P(data) == IS_STRING) {
@@ -14,3 +115,77 @@ diff -Naur pdo_ibm/ibm_driver.c pdo_ibm2/ibm_driver.c
  			} else {
  #if PHP_MAJOR_VERSION >= 7
  				option_num = Z_LVAL_P(data);
+diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
+--- pdo_ibm/ibm_statement.c	2017-11-15 07:41:54.000000000 -0200
++++ pdo_ibm2/ibm_statement.c	2018-04-26 10:54:34.390660155 -0300
+@@ -1253,7 +1253,7 @@
+ static int ibm_stmt_fetcher(
+ 	pdo_stmt_t *stmt,
+ 	enum pdo_fetch_orientation ori,
+-	long offset
++	zend_long offset
+ 	TSRMLS_DC)
+ {
+ 	stmt_handle *stmt_res = (stmt_handle *) stmt->driver_data;
+@@ -1402,6 +1402,7 @@
+ 	column_data *col_res = &stmt_res->columns[colno];
+ 	struct pdo_column_data *col = NULL;
+ 	char tmp_name[BUFSIZ];
++	memset(tmp_name, 0, BUFSIZ);
+ 
+ 	/* get the column descriptor information */
+ 	int rc = SQLDescribeCol((SQLHSTMT)stmt_res->hstmt, (SQLSMALLINT)(colno + 1 ),
+@@ -1453,7 +1454,7 @@
+ 	} else {
+ #if PHP_MAJOR_VERSION >= 7
+ 	//	col_res->name = estrdup(tmp_name);
+-                col_res->name = zend_string_init(tmp_name, strlen(tmp_name), 0); 
++                col_res->name = estrdup(tmp_name); 
+ #else
+ 		col_res->name = estrdup(tmp_name);
+ #endif
+@@ -1465,7 +1466,7 @@
+ 	* Copy the information back into the PDO control block.  Note that
+ 	* PDO will release the name information, so we don't have to.
+ 	*/
+-	col->name = col_res->name;
++	col->name = zend_string_init(col_res->name, col_res->namelen, 0);
+ #if PHP_MAJOR_VERSION < 7
+ 	col->namelen = col_res->namelen;
+ #endif
+@@ -1485,7 +1486,7 @@
+ 	pdo_stmt_t *stmt,
+ 	int colno,
+ 	char **ptr,
+-	unsigned long *len,
++	size_t *len,
+ 	int *caller_frees
+ 	TSRMLS_DC)
+ {
+@@ -1579,7 +1580,7 @@
+ */
+ static int ibm_stmt_get_column_meta(
+ 	pdo_stmt_t *stmt,
+-	long colno,
++	zend_long colno,
+ 	zval *return_value
+ 	TSRMLS_DC)
+ {
+@@ -1710,7 +1711,7 @@
+ /* get driver specific attributes.  We only support CURSOR_NAME. */
+ static int ibm_stmt_get_attribute(
+ 	pdo_stmt_t *stmt,
+-	long attr,
++	zend_long attr,
+ 	zval *return_value
+ 	TSRMLS_DC)
+ {
+@@ -1749,7 +1750,7 @@
+ /* set a driver-specific attribute.  We only support CURSOR_NAME. */
+ static int ibm_stmt_set_attribute(
+ 	pdo_stmt_t *stmt,
+-	long attr,
++	zend_long attr,
+ 	zval *value
+ 	TSRMLS_DC)
+ {
