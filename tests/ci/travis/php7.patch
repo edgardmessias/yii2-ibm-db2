@@ -117,8 +117,26 @@ diff -Naur pdo_ibm/ibm_driver.c pdo_ibm2/ibm_driver.c
  				option_num = Z_LVAL_P(data);
 diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
 --- pdo_ibm/ibm_statement.c	2017-11-15 07:41:54.000000000 -0200
-+++ pdo_ibm2/ibm_statement.c	2018-04-26 10:54:34.390660155 -0300
-@@ -1253,7 +1253,7 @@
++++ pdo_ibm2/ibm_statement.c	2018-04-27 17:29:29.586281412 -0300
+@@ -389,6 +389,8 @@
+ 			* int value
+ 			*/
+ 			case SQL_SMALLINT:
++				param_res->ctype = SQL_C_CHAR;
++				break;
+ 			case SQL_INTEGER:
+ 				param_res->ctype = SQL_C_LONG;
+ 				break;
+@@ -532,7 +534,7 @@
+ #endif
+ 						rc = SQLBindParameter(stmt_res->hstmt,
+ 								curr->paramno + 1,
+-								inputOutputType, SQL_C_LONG,
++								inputOutputType, param_res->ctype,
+ 								param_res->data_type,
+ 								param_res->param_size,
+ 								param_res->scale,
+@@ -1253,7 +1255,7 @@
  static int ibm_stmt_fetcher(
  	pdo_stmt_t *stmt,
  	enum pdo_fetch_orientation ori,
@@ -127,7 +145,7 @@ diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
  	TSRMLS_DC)
  {
  	stmt_handle *stmt_res = (stmt_handle *) stmt->driver_data;
-@@ -1402,6 +1402,7 @@
+@@ -1402,6 +1404,7 @@
  	column_data *col_res = &stmt_res->columns[colno];
  	struct pdo_column_data *col = NULL;
  	char tmp_name[BUFSIZ];
@@ -135,7 +153,7 @@ diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
  
  	/* get the column descriptor information */
  	int rc = SQLDescribeCol((SQLHSTMT)stmt_res->hstmt, (SQLSMALLINT)(colno + 1 ),
-@@ -1453,7 +1454,7 @@
+@@ -1453,7 +1456,7 @@
  	} else {
  #if PHP_MAJOR_VERSION >= 7
  	//	col_res->name = estrdup(tmp_name);
@@ -144,7 +162,7 @@ diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
  #else
  		col_res->name = estrdup(tmp_name);
  #endif
-@@ -1465,7 +1466,7 @@
+@@ -1465,7 +1468,7 @@
  	* Copy the information back into the PDO control block.  Note that
  	* PDO will release the name information, so we don't have to.
  	*/
@@ -153,7 +171,7 @@ diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
  #if PHP_MAJOR_VERSION < 7
  	col->namelen = col_res->namelen;
  #endif
-@@ -1485,7 +1486,7 @@
+@@ -1485,7 +1488,7 @@
  	pdo_stmt_t *stmt,
  	int colno,
  	char **ptr,
@@ -162,7 +180,7 @@ diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
  	int *caller_frees
  	TSRMLS_DC)
  {
-@@ -1579,7 +1580,7 @@
+@@ -1579,7 +1582,7 @@
  */
  static int ibm_stmt_get_column_meta(
  	pdo_stmt_t *stmt,
@@ -171,7 +189,7 @@ diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
  	zval *return_value
  	TSRMLS_DC)
  {
-@@ -1710,7 +1711,7 @@
+@@ -1710,7 +1713,7 @@
  /* get driver specific attributes.  We only support CURSOR_NAME. */
  static int ibm_stmt_get_attribute(
  	pdo_stmt_t *stmt,
@@ -180,7 +198,7 @@ diff -Naur pdo_ibm/ibm_statement.c pdo_ibm2/ibm_statement.c
  	zval *return_value
  	TSRMLS_DC)
  {
-@@ -1749,7 +1750,7 @@
+@@ -1749,7 +1752,7 @@
  /* set a driver-specific attribute.  We only support CURSOR_NAME. */
  static int ibm_stmt_set_attribute(
  	pdo_stmt_t *stmt,
