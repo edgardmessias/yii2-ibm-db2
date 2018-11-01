@@ -14,3 +14,11 @@ require_once __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 Yii::setAlias('@yiiunit', __DIR__ . '/../vendor/yiisoft/yii2-dev/tests');
 Yii::setAlias('@edgardmessias/unit/db/ibm/db2', __DIR__);
 Yii::setAlias('@edgardmessias/db/ibm/db2', dirname(__DIR__));
+
+if (getenv('TEST_RUNTIME_PATH')) {
+    Yii::setAlias('@yiiunit/runtime', getenv('TEST_RUNTIME_PATH'));
+    Yii::setAlias('@runtime', getenv('TEST_RUNTIME_PATH'));
+}
+
+require_once __DIR__ . '/../vendor/yiisoft/yii2-dev/tests/compatibility.php';
+require_once __DIR__ . '/../vendor/yiisoft/yii2-dev/tests/TestCase.php';
