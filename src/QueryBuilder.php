@@ -264,7 +264,7 @@ class QueryBuilder extends \yii\db\QueryBuilder
      */
     public function selectExists($rawSql)
     {
-        return 'SELECT IFNULL((SELECT 1 FROM SYSIBM.SYSDUMMY1 WHERE EXISTS(' . $rawSql . ')), 0) FROM SYSIBM.SYSDUMMY1';
+        return 'SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END FROM (' . $rawSql . ') CHECKEXISTS';;
     }
 
     /**
