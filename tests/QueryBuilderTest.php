@@ -16,9 +16,9 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
 
     protected $driverName = 'ibm';
     
-    protected function getQueryBuilder()
+    protected function getQueryBuilder($reset = true, $open = false)
     {
-        $connection = $this->getConnection(true, false);
+        $connection = $this->getConnection($reset, $open);
 
         \Yii::$container->set('db', $connection);
         
@@ -111,18 +111,6 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
         //unset($conditions[52]);
 
         return $conditions;
-    }
-
-    public function testAddDropPrimaryKey()
-    {
-        $tableName = 'constraints';
-
-        // Change field1 to not null
-        $qb = $this->getQueryBuilder();
-        $qb->db->createCommand('ALTER TABLE "' . $tableName . '" ALTER COLUMN "field1" SET not null')->execute();
-        $qb->db->schema->refreshTableSchema($tableName);
-
-        parent::testAddDropPrimaryKey();
     }
 
     public function testCommentColumn()
