@@ -62,9 +62,6 @@ install:
 
   # Installing composer dependency
   - travis_retry composer install --prefer-dist --no-interaction
-  # Needed to use tests of Yii2
-  - rm vendor/yiisoft/yii2-dev -Rf
-  - travis_retry composer install --prefer-source -o --no-interaction
 
 before_script:
   # Enable coverage for PHP 5.6 only
