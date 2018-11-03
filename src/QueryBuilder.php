@@ -201,37 +201,22 @@ class QueryBuilder extends \yii\db\QueryBuilder
     /**
      * @inheritdoc
      */
-    public function insert($table, $columns, &$params)
+    public function prepareInsertValues($table, $columns, $params = [])
     {
-        $schema = $this->db->getSchema();
-        if (($tableSchema = $schema->getTableSchema($table)) !== null) {
-            $columnSchemas = $tableSchema->columns;
-        } else {
-            $columnSchemas = [];
-        }
-        $names = [];
-        $placeholders = [];
-        foreach ($columns as $name => $value) {
-            $names[] = $schema->quoteColumnName($name);
-            if ($value instanceof Expression) {
-                $placeholders[] = $value->expression;
-                foreach ($value->params as $n => $v) {
-                    $params[$n] = $v;
-                }
+        $result = parent::prepareInsertValues($table, $columns, $params);
+
+        // Empty placeholders, replace for (DEFAULT, DEFAULT, ...)
+        if (empty($result[1]) && $result[2] === ' DEFAULT VALUES') {
+            $schema = $this->db->getSchema();
+            if (($tableSchema = $schema->getTableSchema($table)) !== null) {
+                $columnSchemas = $tableSchema->columns;
             } else {
-                $phName = self::PARAM_PREFIX . count($params);
-                $placeholders[] = $phName;
-                $params[$phName] = !is_array($value) && isset($columnSchemas[$name]) ? $columnSchemas[$name]->dbTypecast($value) : $value;
+                $columnSchemas = [];
             }
+            $result[1] = array_fill(0, count($columnSchemas), 'DEFAULT');
         }
 
-        if (empty($placeholders)) {
-            $placeholders = array_fill(0, count($columnSchemas), 'DEFAULT');
-        }
-
-        return 'INSERT INTO ' . $schema->quoteTableName($table)
-        . (!empty($names) ? ' (' . implode(', ', $names) . ')' : '')
-        . ' VALUES (' . implode(', ', $placeholders) . ')';
+        return $result;
     }
     
     /**
