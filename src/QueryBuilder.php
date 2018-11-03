@@ -41,6 +41,13 @@ class QueryBuilder extends \yii\db\QueryBuilder
         Schema::TYPE_MONEY => 'decimal(19,4)',
     ];
 
+    protected function defaultExpressionBuilders()
+    {
+        return array_merge(parent::defaultExpressionBuilders(), [
+            'yii\db\conditions\InCondition' => 'edgardmessias\db\ibm\db2\conditions\InConditionBuilder',
+        ]);
+    }
+
     /**
      * Builds a SQL statement for truncating a DB table.
      * @param string $table the table to be truncated. The name will be properly quoted by the method.
@@ -189,34 +196,6 @@ class QueryBuilder extends \yii\db\QueryBuilder
         return 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' ALTER COLUMN '
         . $this->db->quoteColumnName($column) . ' SET DATA TYPE '
         . $this->getColumnType($type);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    protected function buildCompositeInCondition($operator, $columns, $values, &$params)
-    {
-        $vss = [];
-        foreach ($values as $value) {
-            $vs = [];
-            foreach ($columns as $column) {
-                if (isset($value[$column])) {
-                    $phName = self::PARAM_PREFIX . count($params);
-                    $params[$phName] = $value[$column];
-                    $vs[] = $phName;
-                } else {
-                    $vs[] = 'NULL';
-                }
-            }
-            $vss[] = 'select ' . implode(', ', $vs) . ' from SYSIBM.SYSDUMMY1';
-        }
-
-        $sqlColumns = [];
-        foreach ($columns as $i => $column) {
-            $sqlColumns[] = strpos($column, '(') === false ? $this->db->quoteColumnName($column) : $column;
-        }
-
-        return '(' . implode(', ', $sqlColumns) . ") $operator (" . implode(' UNION ', $vss) . ')';
     }
 
     /**
