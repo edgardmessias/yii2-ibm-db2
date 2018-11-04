@@ -9,7 +9,9 @@
 namespace edgardmessias\db\ibm\db2;
 
 use yii\base\InvalidParamException;
+use yii\db\Constraint;
 use yii\db\Expression;
+use yii\db\Query;
 
 /**
  * QueryBuilder is the query builder for DB2 databases.
@@ -219,6 +221,71 @@ class QueryBuilder extends \yii\db\QueryBuilder
         return $result;
     }
     
+    /**
+     * @inheritdoc
+     */
+    public function upsert($table, $insertColumns, $updateColumns, &$params)
+    {
+        /** @var Constraint[] $constraints */
+        list($uniqueNames, $insertNames, $updateNames) = $this->prepareUpsertColumns($table, $insertColumns, $updateColumns, $constraints);
+        if (empty($uniqueNames)) {
+            return $this->insert($table, $insertColumns, $params);
+        }
+
+        $onCondition = ['or'];
+        $quotedTableName = $this->db->quoteTableName($table);
+        foreach ($constraints as $constraint) {
+            $constraintCondition = ['and'];
+            foreach ($constraint->columnNames as $name) {
+                $quotedName = $this->db->quoteColumnName($name);
+                $constraintCondition[] = "$quotedTableName.$quotedName=\"EXCLUDED\".$quotedName";
+            }
+            $onCondition[] = $constraintCondition;
+        }
+        $on = $this->buildCondition($onCondition, $params);
+        list(, $placeholders, $values, $params) = $this->prepareInsertValues($table, $insertColumns, $params);
+        if (!empty($placeholders)) {
+            $usingSelectValues = [];
+            foreach ($insertNames as $index => $name) {
+                $usingSelectValues[$name] = new Expression($placeholders[$index]);
+            }
+            $usingSubQuery = (new Query())
+                ->select($usingSelectValues)
+                ->from('SYSIBM.SYSDUMMY1');
+            list($usingValues, $params) = $this->build($usingSubQuery, $params);
+        }
+        $mergeSql = 'MERGE INTO ' . $this->db->quoteTableName($table) . ' '
+            . 'USING (' . (isset($usingValues) ? $usingValues : ltrim($values, ' ')) . ') "EXCLUDED" '
+            . "ON ($on)";
+        $insertValues = [];
+        foreach ($insertNames as $name) {
+            $quotedName = $this->db->quoteColumnName($name);
+            if (strrpos($quotedName, '.') === false) {
+                $quotedName = '"EXCLUDED".' . $quotedName;
+            }
+            $insertValues[] = $quotedName;
+        }
+        $insertSql = 'INSERT (' . implode(', ', $insertNames) . ')'
+            . ' VALUES (' . implode(', ', $insertValues) . ')';
+        if ($updateColumns === false) {
+            return "$mergeSql WHEN NOT MATCHED THEN $insertSql";
+        }
+
+        if ($updateColumns === true) {
+            $updateColumns = [];
+            foreach ($updateNames as $name) {
+                $quotedName = $this->db->quoteColumnName($name);
+                if (strrpos($quotedName, '.') === false) {
+                    $quotedName = '"EXCLUDED".' . $quotedName;
+                }
+                $updateColumns[$name] = new Expression($quotedName);
+            }
+        }
+        list($updates, $params) = $this->prepareUpdateSets($table, $updateColumns, $params);
+        $updateSql = 'UPDATE SET ' . implode(', ', $updates);
+        return "$mergeSql WHEN MATCHED THEN $updateSql WHEN NOT MATCHED THEN $insertSql";
+    }
+
     /**
      * Creates a SELECT EXISTS() SQL statement.
      * @param string $rawSql the subquery in a raw form to select from.
