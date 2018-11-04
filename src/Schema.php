@@ -19,8 +19,10 @@ use yii\db\Transaction;
  * @since 1.0
  */
 
-class Schema extends \yii\db\Schema
+class Schema extends \yii\db\Schema implements \yii\db\ConstraintFinderInterface
 {
+    use \yii\db\ViewFinderTrait;
+    use \yii\db\ConstraintFinderTrait;
 
     public $typeMap = [
         'character'  => self::TYPE_CHAR,
@@ -107,6 +109,16 @@ class Schema extends \yii\db\Schema
         } else {
             $table->fullName = $table->name = $parts[0];
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function resolveTableName($name)
+    {
+        $resolvedName = new TableSchema();
+        $this->resolveTableNames($resolvedName, $name);
+        return $resolvedName;
     }
 
     /**
@@ -499,4 +511,89 @@ SQL;
 
         parent::refreshTableSchema($name);
     }
+
+    protected function findViewNames($schema = '') {
+        $sql = <<<SQL
+            SELECT t.viewname
+            FROM syscat.views AS t
+            WHERE t.ownertype != 'S'
+SQL;
+
+        if ($schema !== '') {
+            $sql .= ' AND t.viewschema = :schema';
+        }
+        $command = $this->db->createCommand($sql);
+
+        if ($schema !== '') {
+            $command->bindValue(':schema', $schema);
+        }
+
+        return $command->queryColumn();
+    }
+
+    protected function loadTablePrimaryKey($tableName) {
+        $resolvedName = $this->resolveTableName($tableName);
+
+        static $sql = <<<SQL
+            SELECT t.colname
+            FROM syscat.columns AS t
+            WHERE t.keyseq IS NOT NULL
+            AND   t.tabname = :table
+SQL;
+
+        if ($resolvedName->sequenceName) {
+            $sql .= ' AND t.tabschema = :schema';
+        }
+
+        $command = $this->db->createCommand($sql);
+
+        $command->bindValue(':table', $resolvedName->name);
+
+        if ($resolvedName->sequenceName) {
+            $command->bindValue(':schema', $resolvedName->sequenceName);
+        }
+        
+        $columns = $command->queryColumn();
+        
+        if (empty($columns)) {
+            return null;
+        }
+        
+        return new \yii\db\Constraint([
+            'columnNames' => $columns,
+        ]);
+    }
+
+    protected function loadTableUniques($tableName) {
+        $resolvedName = $this->resolveTableName($tableName);
+
+        $constraints = $this->findUniqueIndexes($resolvedName);
+
+        $result = [];
+        foreach ($constraints as $name => $columns) {
+            $result[] = new \yii\db\Constraint([
+                'name' => $name,
+                'columnNames' => $columns,
+            ]);
+        }
+
+        return $result;
+    }
+
+    protected function loadTableChecks($tableName) {
+        return [];
+    }
+
+    protected function loadTableDefaultValues($tableName) {
+        return [];
+    }
+
+    protected function loadTableForeignKeys($tableName) {
+        return [];
+    }
+
+    protected function loadTableIndexes($tableName) {
+        return [];
+    }
+
 }
