@@ -179,6 +179,13 @@ class QueryBuilder extends \yii\db\QueryBuilder
             return '';
         }
 
+        if (!$this->hasOffset($offset)) {
+            return ':query FETCH FIRST ' . $limit . ' ROWS ONLY';
+        }
+
+        /**
+         * @todo Need remote the `RN_` from result to use in "INSERT" query
+         */
         $limitOffsetStatment = 'SELECT * FROM (SELECT SUBQUERY_.*, ROW_NUMBER() OVER(:order) AS RN_ FROM ( :query ) AS SUBQUERY_) as t WHERE :offset :limit';
 
         $replacement = $this->hasOffset($offset) ? 't.RN_ > ' . $offset : 't.RN_ > 0';
