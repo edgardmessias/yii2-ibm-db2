@@ -583,16 +583,43 @@ SQL;
     protected function loadTableUniques($tableName) {
         $resolvedName = $this->resolveTableName($tableName);
 
-        $constraints = $this->findUniqueIndexes($resolvedName);
+        static $sql = <<<SQL
+            SELECT i.indname AS name,
+                   ic.colname AS column_name
+            FROM syscat.indexes AS i
+              INNER JOIN syscat.indexcoluse AS ic
+                      ON ic.indschema = i.indschema
+                     AND ic.indname = i.indname
+            WHERE i.ownertype != 'S'
+            AND i.indschema != 'SYSIBM'
+            AND i.uniquerule = 'U'
+            AND i.tabname = :table
+SQL;
 
+        if ($resolvedName->sequenceName) {
+            $sql .= ' AND i.tabschema = :schema';
+        }
+
+        $command = $this->db->createCommand($sql);
+
+        $command->bindValue(':table', $resolvedName->name);
+
+        if ($resolvedName->sequenceName) {
+            $command->bindValue(':schema', $resolvedName->sequenceName);
+        }
+        
+        $constraints = $command->queryAll();
+        $constraints = $this->normalizePdoRowKeyCase($constraints, true);
+        $constraints = \yii\helpers\ArrayHelper::index($constraints, null, ['name']);
         $result = [];
-        foreach ($constraints as $name => $columns) {
+        foreach ($constraints as $name => $constraint) {
+            $columns = \yii\helpers\ArrayHelper::getColumn($constraint, 'column_name');
+
             $result[] = new \yii\db\Constraint([
                 'name' => $name,
                 'columnNames' => $columns,
             ]);
         }
-
         return $result;
     }
 
@@ -722,7 +749,7 @@ SQL;
             $onUpdate = $constraint[0]['on_update'];
             
             static $onRuleMap = [
-                'C' => 'CASCATE',
+                'C' => 'CASCADE',
                 'N' => 'SET NULL',
                 'R' => 'RESTRICT',
             ];

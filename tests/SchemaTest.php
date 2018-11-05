@@ -109,4 +109,39 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
         $columns['bit_col']['defaultValue'] = '130';
         return $columns;
     }
+    
+    public function constraintsProvider()
+    {
+        $result = parent::constraintsProvider();
+        $result['1: check'][2][0]->expression = '"C_check" <> \'\'';
+        
+        $result['1: default'][2] = [new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_default'],
+        ])];
+
+        $result['2: default'][2] = [new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_index_2_1'],
+        ]), new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_index_2_2'],
+        ])];
+
+        $result['3: foreign key'][2][0]->foreignSchemaName = \yiiunit\framework\db\AnyValue::getInstance();
+        $result['3: foreign key'][2][0]->onUpdate = null;
+
+        $result['3: index'][2] = [];
+        $result['3: default'][2] = [];
+
+        $result['4: default'][2] = [new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_col_1'],
+        ]), new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_col_2'],
+        ])];
+
+        return $result;
+    }
 }
