@@ -146,4 +146,24 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
 
         return $result;
     }
+
+    public function defaultValuesProvider()
+    {
+        $tableName = 'T_constraints_1';
+        $name = 'C_default';
+        return [
+            'drop' => [
+                "ALTER TABLE {{{$tableName}}} ALTER COLUMN [[$name]] DROP DEFAULT",
+                function (QueryBuilder $qb) use ($tableName, $name) {
+                    return $qb->dropDefaultValue($name, $tableName);
+                },
+            ],
+            'add' => [
+                "ALTER TABLE {{{$tableName}}} ALTER COLUMN [[$name]] SET DEFAULT 0",
+                function (QueryBuilder $qb) use ($tableName, $name) {
+                    return $qb->addDefaultValue($name, $tableName, $name, 0);
+                },
+            ],
+        ];
+    }
 }

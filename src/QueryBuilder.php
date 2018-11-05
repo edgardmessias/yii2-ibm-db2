@@ -329,4 +329,32 @@ class QueryBuilder extends \yii\db\QueryBuilder
     {
         return 'COMMENT ON TABLE ' . $this->db->quoteTableName($table) . " IS ''";
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function dropIndex($name, $table)
+    {
+        return 'DROP INDEX ' . $this->db->quoteTableName($name);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addDefaultValue($name, $table, $column, $value)
+    {
+        return 'ALTER TABLE ' . $this->db->quoteTableName($table) 
+            . ' ALTER COLUMN ' . $this->db->quoteColumnName($column)
+            . ' SET DEFAULT ' . $this->db->quoteValue($value);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function dropDefaultValue($name, $table)
+    {
+        return 'ALTER TABLE ' . $this->db->quoteTableName($table) 
+            . ' ALTER COLUMN ' . $this->db->quoteColumnName($name)
+            . ' DROP DEFAULT';
+    }
 }
