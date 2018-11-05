@@ -768,7 +768,7 @@ SQL;
             $isUnique = $constraint[0]['index_is_unique'];
             $isPrimary = $constraint[0]['index_is_primary'];
             
-            $result[] = new \yii\db\ForeignKeyConstraint([
+            $result[] = new \yii\db\IndexConstraint([
                 'name' => $name,
                 'columnNames' => $columns,
                 'isUnique' => $isUnique,
