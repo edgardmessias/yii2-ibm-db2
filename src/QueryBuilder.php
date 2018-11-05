@@ -191,7 +191,15 @@ class QueryBuilder extends \yii\db\QueryBuilder
         $replacement = $this->hasOffset($offset) ? 't.RN_ > ' . $offset : 't.RN_ > 0';
         $limitOffsetStatment = str_replace(':offset', $replacement, $limitOffsetStatment);
 
-        $replacement = $this->hasLimit($limit) ? 'AND t.RN_ <= ' . ($limit + $offset) : '';
+        $replacement = '';
+        
+        if ($this->hasLimit($limit)) {
+            if ($limit instanceof \yii\db\ExpressionInterface || $offset instanceof \yii\db\ExpressionInterface) {
+                $replacement = 'AND t.RN_ <= (' . $limit  . ' + ' . $offset . ')';
+            } else {
+                $replacement = 'AND t.RN_ <= ' . ($limit + $offset);
+            }
+        }
         $limitOffsetStatment = str_replace(':limit', $replacement, $limitOffsetStatment);
 
         return $limitOffsetStatment;
