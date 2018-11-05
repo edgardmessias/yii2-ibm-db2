@@ -253,11 +253,10 @@ SQL;
         if (empty($columns)) {
             return false;
         }
+        
+        $columns = $this->normalizePdoRowKeyCase($columns, true);
 
         foreach ($columns as $info) {
-            if ($this->db->slavePdo->getAttribute(PDO::ATTR_CASE) !== PDO::CASE_LOWER) {
-                $info = array_change_key_case($info, CASE_LOWER);
-            }
             $column = $this->loadColumnSchema($info);
             $table->columns[$column->name] = $column;
             if ($column->isPrimaryKey) {
@@ -326,11 +325,10 @@ SQL;
         }
 
         $results = $command->queryAll();
+        $results = $this->normalizePdoRowKeyCase($results, true);
+
         $foreignKeys = [];
         foreach ($results as $result) {
-            if ($this->db->slavePdo->getAttribute(PDO::ATTR_CASE) !== PDO::CASE_LOWER) {
-                $result = array_change_key_case($result, CASE_LOWER);
-            }
             $tablename = $result['tablename'];
             $fk = $result['fk'];
             $pk = $result['pk'];
@@ -396,11 +394,10 @@ SQL;
             }
         }
         $results = $command->queryAll();
+        $results = $this->normalizePdoRowKeyCase($results, true);
+
         $indexes = [];
         foreach ($results as $result) {
-            if ($this->db->slavePdo->getAttribute(PDO::ATTR_CASE) !== PDO::CASE_LOWER) {
-                $result = array_change_key_case($result, CASE_LOWER);
-            }
             $indexes[$result['indexname']][] = $result['column'];
         }
         return $indexes;
@@ -781,4 +778,18 @@ SQL;
         return $result;
     }
 
+    protected function normalizePdoRowKeyCase(array $row, $multiple)
+    {
+        if ($this->db->getSlavePdo()->getAttribute(\PDO::ATTR_CASE) === \PDO::CASE_LOWER) {
+            return $row;
+        }
+
+        if ($multiple) {
+            return array_map(function (array $row) {
+                return array_change_key_case($row, CASE_LOWER);
+            }, $row);
+        }
+
+        return array_change_key_case($row, CASE_LOWER);
+    }
 }
