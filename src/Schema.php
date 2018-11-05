@@ -606,7 +606,7 @@ SQL;
             $command->bindValue(':schema', $resolvedName->sequenceName);
         }
         
-        $constraints = $columns = $command->queryAll();
+        $constraints = $command->queryAll();
         $constraints = $this->normalizePdoRowKeyCase($constraints, true);
         $constraints = \yii\helpers\ArrayHelper::index($constraints, null, ['name']);
         $result = [];
@@ -645,7 +645,7 @@ SQL;
             $command->bindValue(':schema', $resolvedName->sequenceName);
         }
         
-        $constraints = $columns = $command->queryAll();
+        $constraints = $command->queryAll();
         $constraints = $this->normalizePdoRowKeyCase($constraints, true);
 
         $result = [];
@@ -692,7 +692,7 @@ SQL;
             $command->bindValue(':schema', $resolvedName->sequenceName);
         }
         
-        $constraints = $columns = $command->queryAll();
+        $constraints = $command->queryAll();
         $constraints = $this->normalizePdoRowKeyCase($constraints, true);
         $constraints = \yii\helpers\ArrayHelper::index($constraints, null, ['name']);
         $result = [];
@@ -725,7 +725,58 @@ SQL;
     }
 
     protected function loadTableIndexes($tableName) {
-        return [];
+        $resolvedName = $this->resolveTableName($tableName);
+
+        static $sql = <<<SQL
+            SELECT i.indname AS name,
+                   ic.colname AS column_name,
+                   CASE i.uniquerule
+                     WHEN 'U' THEN 1
+                     WHEN 'P' THEN 1
+                     ELSE 0
+                   END AS index_is_unique,
+                   CASE i.uniquerule
+                     WHEN 'P' THEN 1
+                     ELSE 0
+                   END AS index_is_primary
+            FROM syscat.indexes AS i
+              INNER JOIN syscat.indexcoluse AS ic
+                      ON ic.indschema = i.indschema
+                     AND ic.indname = i.indname
+            WHERE i.ownertype != 'S'
+            AND i.tabname = :table
+SQL;
+
+        if ($resolvedName->sequenceName) {
+            $sql .= ' AND i.tabschema = :schema';
+        }
+
+        $command = $this->db->createCommand($sql);
+
+        $command->bindValue(':table', $resolvedName->name);
+
+        if ($resolvedName->sequenceName) {
+            $command->bindValue(':schema', $resolvedName->sequenceName);
+        }
+        
+        $constraints = $command->queryAll();
+        $constraints = $this->normalizePdoRowKeyCase($constraints, true);
+        $constraints = \yii\helpers\ArrayHelper::index($constraints, null, ['name']);
+        $result = [];
+        foreach ($constraints as $name => $constraint) {
+            $columns = \yii\helpers\ArrayHelper::getColumn($constraint, 'column_name');
+
+            $isUnique = $constraint[0]['index_is_unique'];
+            $isPrimary = $constraint[0]['index_is_primary'];
+            
+            $result[] = new \yii\db\ForeignKeyConstraint([
+                'name' => $name,
+                'columnNames' => $columns,
+                'isUnique' => $isUnique,
+                'isPrimary' => $isPrimary,
+            ]);
+        }
+        return $result;
     }
 
 }
