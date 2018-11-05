@@ -372,4 +372,18 @@ SQL;
         $this->assertEquals('Some {{updated}} name', $customer['name']);
         $this->assertEquals('Some {{%updated}} address', $customer['address']);
     }
+    
+    public function batchInsertSqlProvider()
+    {
+        $result = parent::batchInsertSqlProvider();
+
+        foreach ($result as $key => $value) {
+            // Replace `column` with "column"
+            $value['expected'] = str_replace('`', '"', $value['expected']);
+
+            $result[$key] = $value;
+        }
+
+        return $result;
+    }
 }
