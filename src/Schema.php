@@ -503,8 +503,10 @@ SQL;
             $sql = "CALL ADMIN_CMD ('REORG TABLE " . $this->db->quoteTableName($name) . "')";
             $this->db->createCommand($sql)->execute();
         } catch (\Exception $ex) {
-            // Do not throw error on table which doesn't exist
-            if (!(isset($ex->errorInfo[1]) && $ex->errorInfo[1] === -2211)) {
+            // Do not throw error on table which doesn't exist (-2211)
+            // Do not throw error on view (-2212)
+            $code = isset($ex->errorInfo[1]) ? $ex->errorInfo[1] : 0;
+            if (!in_array($code, [-2211, -2212])) {
                 throw new \Exception($ex->getMessage(), $ex->getCode(), $ex->getPrevious());
             }
         }
