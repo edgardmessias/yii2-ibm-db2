@@ -581,15 +581,147 @@ SQL;
     }
 
     protected function loadTableChecks($tableName) {
-        return [];
+        $resolvedName = $this->resolveTableName($tableName);
+
+        static $sql = <<<SQL
+            SELECT c.constname AS name,
+                   cc.colname AS column_name,
+                   c.text AS check_expr
+            FROM syscat.checks AS c
+              INNER JOIN syscat.colchecks cc
+                      ON cc.constname = c.constname
+            WHERE c.ownertype != 'S'
+            AND   c.tabname = :table
+SQL;
+
+        if ($resolvedName->sequenceName) {
+            $sql .= ' AND c.tabschema = :schema';
+        }
+
+        $command = $this->db->createCommand($sql);
+
+        $command->bindValue(':table', $resolvedName->name);
+
+        if ($resolvedName->sequenceName) {
+            $command->bindValue(':schema', $resolvedName->sequenceName);
+        }
+        
+        $constraints = $columns = $command->queryAll();
+        $constraints = $this->normalizePdoRowKeyCase($constraints, true);
+        $constraints = \yii\helpers\ArrayHelper::index($constraints, null, ['name']);
+        $result = [];
+        foreach ($constraints as $name => $constraint) {
+            $columns = \yii\helpers\ArrayHelper::getColumn($constraint, 'column_name');
+            $check_expr = $constraint[0]['check_expr'];
+            $result[] = new \yii\db\CheckConstraint([
+                'name' => strtolower(trim($name)),
+                'columnNames' => $columns,
+                'expression' => $check_expr,
+            ]);
+        }
+        return $result;
     }
 
     protected function loadTableDefaultValues($tableName) {
-        return [];
+        $resolvedName = $this->resolveTableName($tableName);
+
+        static $sql = <<<SQL
+            SELECT c.colname AS column_name,
+                   c.default AS default_value
+            FROM syscat.columns AS c
+            WHERE c.default IS NOT NULL
+            AND c.tabname = :table
+SQL;
+
+        if ($resolvedName->sequenceName) {
+            $sql .= ' AND c.tabschema = :schema';
+        }
+
+        $command = $this->db->createCommand($sql);
+
+        $command->bindValue(':table', $resolvedName->name);
+
+        if ($resolvedName->sequenceName) {
+            $command->bindValue(':schema', $resolvedName->sequenceName);
+        }
+        
+        $constraints = $columns = $command->queryAll();
+        $constraints = $this->normalizePdoRowKeyCase($constraints, true);
+
+        $result = [];
+        foreach ($constraints as $constraint) {
+            $columns = [$constraint['column_name']];
+            $default_value = $constraint['default_value'];
+            $result[] = new \yii\db\DefaultValueConstraint([
+                'columnNames' => $columns,
+                'value' => $default_value,
+            ]);
+        }
+        return $result;
     }
 
     protected function loadTableForeignKeys($tableName) {
-        return [];
+        $resolvedName = $this->resolveTableName($tableName);
+
+        static $sql = <<<SQL
+            SELECT ref.constname AS name,
+                   fk.colname AS column_name,
+                   ref.reftabschema AS ref_schema,
+                   ref.reftabname AS ref_table,
+                   pk.colname AS ref_column,
+                   ref.deleterule AS on_delete,
+                   ref.updaterule AS on_update
+            FROM syscat.references AS ref
+              INNER JOIN syscat.keycoluse AS fk
+                      ON ref.constname = fk.constname
+              INNER JOIN syscat.keycoluse AS pk
+                      ON ref.refkeyname = pk.constname
+                     AND pk.colseq = fk.colseq
+            WHERE ref.tabname = :table
+SQL;
+
+        if ($resolvedName->sequenceName) {
+            $sql .= ' AND ref.tabschema = :schema';
+        }
+
+        $command = $this->db->createCommand($sql);
+
+        $command->bindValue(':table', $resolvedName->name);
+
+        if ($resolvedName->sequenceName) {
+            $command->bindValue(':schema', $resolvedName->sequenceName);
+        }
+        
+        $constraints = $columns = $command->queryAll();
+        $constraints = $this->normalizePdoRowKeyCase($constraints, true);
+        $constraints = \yii\helpers\ArrayHelper::index($constraints, null, ['name']);
+        $result = [];
+        foreach ($constraints as $name => $constraint) {
+            $columns = \yii\helpers\ArrayHelper::getColumn($constraint, 'column_name');
+            $foreignColumnNames = \yii\helpers\ArrayHelper::getColumn($constraint, 'ref_column');
+
+            $foreignSchemaName = $constraint[0]['ref_schema'];
+            $foreignTableName = $constraint[0]['ref_table'];
+            $onDelete = $constraint[0]['on_delete'];
+            $onUpdate = $constraint[0]['on_update'];
+            
+            static $onRuleMap = [
+                'C' => 'CASCATE',
+                'N' => 'SET NULL',
+                'R' => 'RESTRICT',
+            ];
+
+            $result[] = new \yii\db\ForeignKeyConstraint([
+                'name' => $name,
+                'columnNames' => $columns,
+                'foreignSchemaName' => $foreignSchemaName,
+                'foreignTableName' => $foreignTableName,
+                'foreignColumnNames' => $foreignColumnNames,
+                'onUpdate' => isset($onRuleMap[$onUpdate]) ? $onRuleMap[$onUpdate] : null,
+                'onDelete' => isset($onRuleMap[$onDelete]) ? $onRuleMap[$onDelete] : null,
+            ]);
+        }
+        return $result;
     }
 
     protected function loadTableIndexes($tableName) {
