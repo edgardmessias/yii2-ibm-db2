@@ -534,9 +534,21 @@ SQL;
         $resolvedName = $this->resolveTableName($tableName);
 
         static $sql = <<<SQL
-            SELECT t.colname
+            SELECT CASE
+                     WHEN i.indschema = 'SYSIBM' THEN NULL
+                     ELSE i.indname
+                   END AS name,
+                   t.colname AS column_name
             FROM syscat.columns AS t
+              LEFT JOIN syscat.indexes AS i
+                     ON i.tabschema = t.tabschema
+                    AND i.tabname = t.tabname
+              INNER JOIN syscat.indexcoluse AS ic
+                      ON ic.indschema = i.indschema
+                     AND ic.indname = i.indname
+                     AND ic.colname = t.colname
             WHERE t.keyseq IS NOT NULL
+            AND   i.ownertype != 'S'
             AND   t.tabname = :table
 SQL;
 
@@ -552,13 +564,18 @@ SQL;
             $command->bindValue(':schema', $resolvedName->sequenceName);
         }
         
-        $columns = $command->queryColumn();
+        $constraints = $command->queryAll();
         
-        if (empty($columns)) {
+        if (empty($constraints)) {
             return null;
         }
         
+        $constraints = $this->normalizePdoRowKeyCase($constraints, true);
+        
+        $columns = \yii\helpers\ArrayHelper::getColumn($constraints, 'column_name');
+        
         return new \yii\db\Constraint([
+            'name' => $constraints[0]['name'],
             'columnNames' => $columns,
         ]);
     }
@@ -743,6 +760,7 @@ SQL;
                       ON ic.indschema = i.indschema
                      AND ic.indname = i.indname
             WHERE i.ownertype != 'S'
+            AND i.indschema != 'SYSIBM'
             AND i.tabname = :table
 SQL;
 
@@ -771,8 +789,8 @@ SQL;
             $result[] = new \yii\db\IndexConstraint([
                 'name' => $name,
                 'columnNames' => $columns,
-                'isUnique' => $isUnique,
-                'isPrimary' => $isPrimary,
+                'isUnique' => !!$isUnique,
+                'isPrimary' => !!$isPrimary,
             ]);
         }
         return $result;
