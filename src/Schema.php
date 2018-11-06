@@ -787,7 +787,6 @@ SQL;
                       ON ic.indschema = i.indschema
                      AND ic.indname = i.indname
             WHERE i.ownertype != 'S'
-            AND i.indschema != 'SYSIBM'
             AND i.tabname = :table
 SQL;
 
