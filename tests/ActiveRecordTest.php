@@ -305,4 +305,17 @@ class ActiveRecordTest extends \yiiunit\framework\db\ActiveRecordTest
         $model->loadDefaultValues(false);
         $this->assertEquals('something', $model->char_col2);
     }
+
+    public function testAmbiguousColumnIndexBy()
+    {
+        $selectExpression = '("customer"."name" || \' in \' || "p"."description") AS "name"';
+
+        $result = Customer::find()->select([$selectExpression])
+            ->innerJoinWith('profile p')
+            ->indexBy('id')->column();
+        $this->assertEquals([
+            1 => 'user1 in profile customer 1',
+            3 => 'user3 in profile customer 3',
+        ], $result);
+    }
 }
