@@ -17,7 +17,7 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
     protected $driverName = 'ibm';
 
     protected $expectedSchemas = [
-        'TEST',
+        'test',
     ];
 
     public function testGetPDOType()
@@ -206,17 +206,5 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
             'someCol2Unique' => ['someCol2'],
             'another unique index' => ['someCol3'],
         ], $uniqueIndexes);
-    }
-    
-    public function testGetSchemaNames()
-    {
-                /* @var $schema Schema */
-        $schema = $this->getConnection()->schema;
-
-        $schemas = $schema->getSchemaNames();
-
-        var_dump($schemas);
-        
-        parent::testGetSchemaNames();
     }
 }

@@ -469,8 +469,10 @@ SQL;
 SQL;
 
         $command = $this->db->createCommand($sql);
+        
+        $schemas = $command->queryColumn();
 
-        return $command->queryColumn();
+        return array_map('trim', $schemas);
     }
     
     /**
