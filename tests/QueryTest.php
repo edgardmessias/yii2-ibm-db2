@@ -25,4 +25,15 @@ class QueryTest extends \yiiunit\framework\db\QueryTest
             3 => 'user3 in profile customer 3',
         ], $result);
     }
+
+    public function testExpressionInFrom()
+    {
+        $db = $this->getConnection();
+        $query = (new \yii\db\Query())
+            ->from(new \yii\db\Expression('(SELECT [[id]], [[name]], [[email]], [[address]], [[status]] FROM {{customer}}) c'))
+            ->where(['status' => 2]);
+
+        $result = $query->one($db);
+        $this->assertEquals('user3', $result['name']);
+    }
 }
