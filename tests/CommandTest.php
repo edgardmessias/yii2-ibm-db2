@@ -324,9 +324,9 @@ SQL;
             $this->assertEquals('A', rtrim($data[0]['char_col'])); // rtrim because Postgres padds the column with whitespace
             $this->assertEquals('B', rtrim($data[1]['char_col']));
             $this->assertEquals('C', rtrim($data[2]['char_col']));
-            $this->assertEquals('9.735', rtrim($data[0]['float_col'], '0')); // rtrim because DB@ padds the column with zero
-            $this->assertEquals('-2.123', rtrim($data[1]['float_col'], '0'));
-            $this->assertEquals('2.123', rtrim($data[2]['float_col'], '0'));
+            $this->assertEquals('9.735', preg_replace('/0+E\+0+$/', '', $data[0]['float_col'])); // rtrim because DB@ padds the column with zero
+            $this->assertEquals('-2.123', preg_replace('/0+E\+0+$/', '', $data[1]['float_col']));
+            $this->assertEquals('2.123', preg_replace('/0+E\+0+$/', '', $data[2]['float_col']));
             $this->assertEquals('1', $data[0]['bool_col']);
             $this->assertIsOneOf($data[1]['bool_col'], ['0', false]);
             $this->assertIsOneOf($data[2]['bool_col'], ['0', false]);
