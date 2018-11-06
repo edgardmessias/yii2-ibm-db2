@@ -556,7 +556,7 @@ SQL;
     protected function loadTablePrimaryKey($tableName) {
         $resolvedName = $this->resolveTableName($tableName);
 
-        static $sql = <<<SQL
+        $sql = <<<SQL
             SELECT CASE
                      WHEN i.indschema = 'SYSIBM' THEN NULL
                      ELSE i.indname
@@ -608,7 +608,7 @@ SQL;
     protected function loadTableUniques($tableName) {
         $resolvedName = $this->resolveTableName($tableName);
 
-        static $sql = <<<SQL
+        $sql = <<<SQL
             SELECT i.indname AS name,
                    ic.colname AS column_name
             FROM syscat.indexes AS i
@@ -653,7 +653,7 @@ SQL;
     protected function loadTableChecks($tableName) {
         $resolvedName = $this->resolveTableName($tableName);
 
-        static $sql = <<<SQL
+        $sql = <<<SQL
             SELECT c.constname AS name,
                    cc.colname AS column_name,
                    c.text AS check_expr
@@ -695,7 +695,7 @@ SQL;
     protected function loadTableDefaultValues($tableName) {
         $resolvedName = $this->resolveTableName($tableName);
 
-        static $sql = <<<SQL
+        $sql = <<<SQL
             SELECT c.colname AS column_name,
                    c.default AS default_value
             FROM syscat.columns AS c
@@ -735,7 +735,7 @@ SQL;
     protected function loadTableForeignKeys($tableName) {
         $resolvedName = $this->resolveTableName($tableName);
 
-        static $sql = <<<SQL
+        $sql = <<<SQL
             SELECT ref.constname AS name,
                    fk.colname AS column_name,
                    ref.reftabschema AS ref_schema,
@@ -801,7 +801,7 @@ SQL;
     protected function loadTableIndexes($tableName) {
         $resolvedName = $this->resolveTableName($tableName);
 
-        static $sql = <<<SQL
+        $sql = <<<SQL
             SELECT i.indname AS name,
                    ic.colname AS column_name,
                    CASE i.uniquerule
