@@ -277,6 +277,7 @@ SQL;
         if ($this->db->isISeries) {
             $sql = <<<SQL
             SELECT
+              child.constraint_name as name,
               parent.table_name AS tablename,
               parent.column_name AS pk,
               child.column_name AS fk
@@ -297,6 +298,7 @@ SQL;
         } else {
             $sql = <<<SQL
             SELECT
+                fk.constname as name,
                 pk.tabname AS tablename,
                 fk.colname AS fk,
                 pk.colname AS pk
@@ -324,22 +326,25 @@ SQL;
             }
         }
 
-        $results = $command->queryAll();
-        $results = $this->normalizePdoRowKeyCase($results, true);
+        $constraints = $command->queryAll();
+        $constraints = $this->normalizePdoRowKeyCase($constraints, true);
 
-        $foreignKeys = [];
-        foreach ($results as $result) {
-            $tablename = $result['tablename'];
-            $fk = $result['fk'];
-            $pk = $result['pk'];
-            $foreignKeys[$tablename][$fk] = $pk;
-        }
-        foreach ($foreignKeys as $tablename => $keymap) {
-            $constraint = [$tablename];
+        $constraints = \yii\helpers\ArrayHelper::index($constraints, null, ['name']);
+
+        foreach ($constraints as $name => $constraint) {
+            $fks = \yii\helpers\ArrayHelper::getColumn($constraint, 'fk');
+            $pks = \yii\helpers\ArrayHelper::getColumn($constraint, 'pk');
+
+            $tablename = $constraint[0]['tablename'];
+            
+            $keymap = array_combine($fks, $pks);
+
+            $foreignKeys = [$tablename];
             foreach ($keymap as $fk => $pk) {
-                $constraint[$fk] = $pk;
+                $foreignKeys[$fk] = $pk;
             }
-            $table->foreignKeys[] = $constraint;
+
+            $table->foreignKeys[$name] = $foreignKeys;
         }
     }
 
