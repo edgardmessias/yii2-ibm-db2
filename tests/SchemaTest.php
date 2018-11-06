@@ -16,6 +16,10 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
 
     protected $driverName = 'ibm';
 
+    protected $expectedSchemas = [
+        'TEST',
+    ];
+
     public function testGetPDOType()
     {
         $values = [

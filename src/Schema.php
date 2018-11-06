@@ -448,6 +448,27 @@ SQL;
     }
     
     /**
+     * @inheritdoc
+     */
+    protected function findSchemaNames()
+    {
+
+        $sql = <<<SQL
+        SELECT
+            t.schemaname
+        FROM
+            syscat.schemata AS t
+        WHERE
+            t.definertype != 'S' AND
+            t.definer != 'DB2INST1'
+SQL;
+
+        $command = $this->db->createCommand($sql);
+
+        return $command->queryColumn();
+    }
+    
+    /**
      * Creates a new savepoint.
      * @param string $name the savepoint name
      */
