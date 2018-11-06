@@ -558,6 +558,8 @@ SQL;
             $sql .= ' AND t.tabschema = :schema';
         }
 
+        $sql .= ' ORDER BY t.keyseq';
+
         $command = $this->db->createCommand($sql);
 
         $command->bindValue(':table', $resolvedName->name);
@@ -601,6 +603,8 @@ SQL;
         if ($resolvedName->sequenceName) {
             $sql .= ' AND i.tabschema = :schema';
         }
+
+        $sql .= ' ORDER BY ic.colseq';
 
         $command = $this->db->createCommand($sql);
 
@@ -682,6 +686,8 @@ SQL;
             $sql .= ' AND c.tabschema = :schema';
         }
 
+        $sql .= ' ORDER BY c.colno';
+
         $command = $this->db->createCommand($sql);
 
         $command->bindValue(':table', $resolvedName->name);
@@ -728,6 +734,8 @@ SQL;
         if ($resolvedName->sequenceName) {
             $sql .= ' AND ref.tabschema = :schema';
         }
+
+        $sql .= ' ORDER BY fk.colseq';
 
         $command = $this->db->createCommand($sql);
 
@@ -795,6 +803,8 @@ SQL;
         if ($resolvedName->sequenceName) {
             $sql .= ' AND i.tabschema = :schema';
         }
+
+        $sql .= ' ORDER BY ic.colseq';
 
         $command = $this->db->createCommand($sql);
 
