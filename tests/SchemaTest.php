@@ -55,6 +55,7 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
         $columns['int_col2']['precision'] = 4;
         $columns['int_col2']['scale'] = 0;
         $columns['int_col2']['defaultValue'] = '1';
+        $columns['tinyint_col']['type'] = 'smallint';
         $columns['tinyint_col']['dbType'] = 'SMALLINT';
         $columns['tinyint_col']['size'] = 2;
         $columns['tinyint_col']['precision'] = 2;
