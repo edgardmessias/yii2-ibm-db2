@@ -386,4 +386,27 @@ SQL;
 
         return $result;
     }
+
+    public function testAddDropDefaultValue()
+    {
+        $db = $this->getConnection(false);
+        $tableName = 'test_def';
+        $name = 'test_def_constraint';
+        /** @var Schema $schema */
+        $schema = $db->getSchema();
+
+        if ($schema->getTableSchema($tableName) !== null) {
+            $db->createCommand()->dropTable($tableName)->execute();
+        }
+        $db->createCommand()->createTable($tableName, [
+            'int1' => 'integer',
+        ])->execute();
+
+        $this->assertEmpty($schema->getTableDefaultValues($tableName, true));
+        $db->createCommand()->addDefaultValue($name, $tableName, 'int1', 41)->execute();
+        $this->assertRegExp('/^.*41.*$/', $schema->getTableDefaultValues($tableName, true)[0]->value);
+
+        $db->createCommand()->dropDefaultValue('int1', $tableName)->execute();
+        $this->assertEmpty($schema->getTableDefaultValues($tableName, true));
+    }
 }
