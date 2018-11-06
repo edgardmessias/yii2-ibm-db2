@@ -317,6 +317,16 @@ SQL;
             $db->createCommand()->batchInsert('type', $cols, $data)->execute();
 
             $data = $db->createCommand('SELECT [[int_col]], [[char_col]], [[float_col]], [[bool_col]] FROM {{type}} WHERE [[int_col]] IN (1,2,3) ORDER BY [[int_col]];')->queryAll();
+
+            /**
+             * @todo Need a solution for DB2
+             */
+            $fixNum = function ($n) {
+                $n = preg_replace('/0+E\+0+$/', '', $n);
+                $n = \yii\helpers\StringHelper::floatToString($n);
+                return $n;
+            };
+            
             $this->assertEquals(3, \count($data));
             $this->assertEquals(1, $data[0]['int_col']);
             $this->assertEquals(2, $data[1]['int_col']);
@@ -324,9 +334,9 @@ SQL;
             $this->assertEquals('A', rtrim($data[0]['char_col'])); // rtrim because Postgres padds the column with whitespace
             $this->assertEquals('B', rtrim($data[1]['char_col']));
             $this->assertEquals('C', rtrim($data[2]['char_col']));
-            $this->assertEquals('9.735', preg_replace('/0+E\+0+$/', '', $data[0]['float_col'])); // rtrim because DB@ padds the column with zero
-            $this->assertEquals('-2.123', preg_replace('/0+E\+0+$/', '', $data[1]['float_col']));
-            $this->assertEquals('2.123', preg_replace('/0+E\+0+$/', '', $data[2]['float_col']));
+            $this->assertEquals('9.735', $fixNum($data[0]['float_col'])); // rtrim because DB@ padds the column with zero
+            $this->assertEquals('-2.123', $fixNum($data[1]['float_col']));
+            $this->assertEquals('2.123', $fixNum($data[2]['float_col']));
             $this->assertEquals('1', $data[0]['bool_col']);
             $this->assertIsOneOf($data[1]['bool_col'], ['0', false]);
             $this->assertIsOneOf($data[2]['bool_col'], ['0', false]);
@@ -338,6 +348,8 @@ SQL;
             throw $e;
         }
         setlocale(LC_NUMERIC, $locale);
+        
+        $this->markTestSkipped('Need a solution for DB2');
     }
 
     /**
