@@ -207,4 +207,16 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
             'another unique index' => ['someCol3'],
         ], $uniqueIndexes);
     }
+    
+    public function testGetSchemaNames()
+    {
+                /* @var $schema Schema */
+        $schema = $this->getConnection()->schema;
+
+        $schemas = $schema->getSchemaNames();
+
+        var_dump($schemas);
+        
+        parent::testGetSchemaNames();
+    }
 }

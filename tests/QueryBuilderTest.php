@@ -16,6 +16,8 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
 
     protected $driverName = 'ibm';
     
+    protected $likeEscapeCharSql = " ESCAPE '\'";
+
     protected function getQueryBuilder($reset = true, $open = false)
     {
         $connection = $this->getConnection($reset, $open);
