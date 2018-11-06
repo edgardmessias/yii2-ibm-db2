@@ -100,10 +100,12 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
         $columns['time']['precision'] = 10;
         $columns['time']['scale'] = 6;
         $columns['time']['defaultValue'] = '2002-01-01-00.00.00.000000';
+        $columns['bool_col']['type'] = 'smallint';
         $columns['bool_col']['dbType'] = 'SMALLINT';
         $columns['bool_col']['size'] = 2;
         $columns['bool_col']['precision'] = 2;
         $columns['bool_col']['scale'] = 0;
+        $columns['bool_col2']['type'] = 'smallint';
         $columns['bool_col2']['dbType'] = 'SMALLINT';
         $columns['bool_col2']['size'] = 2;
         $columns['bool_col2']['precision'] = 2;
