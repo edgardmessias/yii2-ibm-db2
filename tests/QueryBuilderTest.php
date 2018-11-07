@@ -21,6 +21,7 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
         '\%' => '!%',
         '\_' => '!_',
         '!' => '!!',
+        '\\\\' => '\\',
     ];
 
     protected function getQueryBuilder($reset = true, $open = false)
