@@ -16,7 +16,12 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
 
     protected $driverName = 'ibm';
     
-    protected $likeEscapeCharSql = " ESCAPE '\'";
+    protected $likeEscapeCharSql = " ESCAPE '!'";
+    protected $likeParameterReplacements = [
+        '\%' => '!%',
+        '\_' => '!_',
+        '!' => '!!',
+    ];
 
     protected function getQueryBuilder($reset = true, $open = false)
     {

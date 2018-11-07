@@ -18,8 +18,9 @@ class LikeConditionBuilder extends \yii\db\conditions\LikeConditionBuilder
 {
     /**
      * {@inheritdoc}
+     * @note Using '\\' the pdo bindValue not work
      */
-    protected $escapeCharacter = '\\';
+    protected $escapeCharacter = '!';
 
     /**
      * `\` is initialized in [[buildLikeCondition()]] method since
@@ -27,8 +28,8 @@ class LikeConditionBuilder extends \yii\db\conditions\LikeConditionBuilder
      * {@inheritdoc}
      */
     protected $escapingReplacements = [
-        '%' => '\%',
-        '_' => '\_',
-        '\\' => '\\\\',
+        '%' => '!%',
+        '_' => '!_',
+        '!' => '!!',
     ];
 }
