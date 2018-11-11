@@ -284,4 +284,141 @@ SQL;
         $countAfter = (new Query())->from('animal')->count('*', $db);
         $this->assertEquals(0, $countAfter);
     }
+
+    /**
+     * Test batch insert with different data types.
+     *
+     * Ensure double is inserted with `.` decimal separator.
+     *
+     * https://github.com/yiisoft/yii2/issues/6526
+     */
+    public function testBatchInsertDataTypesLocale()
+    {
+        $locale = setlocale(LC_NUMERIC, 0);
+        if (false === $locale) {
+            $this->markTestSkipped('Your platform does not support locales.');
+        }
+        $db = $this->getConnection();
+
+        try {
+            // This one sets decimal mark to comma sign
+            setlocale(LC_NUMERIC, 'ru_RU.utf8');
+
+            $cols = ['int_col', 'char_col', 'float_col', 'bool_col'];
+            $data = [
+                [1, 'A', 9.735, true],
+                [2, 'B', -2.123, false],
+                [3, 'C', 2.123, false],
+            ];
+
+            // clear data in "type" table
+            $db->createCommand()->delete('type')->execute();
+            // batch insert on "type" table
+            $db->createCommand()->batchInsert('type', $cols, $data)->execute();
+
+            $data = $db->createCommand('SELECT [[int_col]], [[char_col]], [[float_col]], [[bool_col]] FROM {{type}} WHERE [[int_col]] IN (1,2,3) ORDER BY [[int_col]];')->queryAll();
+
+            /**
+             * @todo Need a solution for DB2
+             */
+            $fixNum = function ($n) {
+                $n = preg_replace('/0+E\+0+$/', '', $n);
+                $n = \yii\helpers\StringHelper::floatToString($n);
+                return $n;
+            };
+            
+            $this->assertEquals(3, \count($data));
+            $this->assertEquals(1, $data[0]['int_col']);
+            $this->assertEquals(2, $data[1]['int_col']);
+            $this->assertEquals(3, $data[2]['int_col']);
+            $this->assertEquals('A', rtrim($data[0]['char_col'])); // rtrim because Postgres padds the column with whitespace
+            $this->assertEquals('B', rtrim($data[1]['char_col']));
+            $this->assertEquals('C', rtrim($data[2]['char_col']));
+            $this->assertEquals('9.735', $fixNum($data[0]['float_col'])); // rtrim because DB@ padds the column with zero
+            $this->assertEquals('-2.123', $fixNum($data[1]['float_col']));
+            $this->assertEquals('2.123', $fixNum($data[2]['float_col']));
+            $this->assertEquals('1', $data[0]['bool_col']);
+            $this->assertIsOneOf($data[1]['bool_col'], ['0', false]);
+            $this->assertIsOneOf($data[2]['bool_col'], ['0', false]);
+        } catch (\Exception $e) {
+            setlocale(LC_NUMERIC, $locale);
+            throw $e;
+        } catch (\Throwable $e) {
+            setlocale(LC_NUMERIC, $locale);
+            throw $e;
+        }
+        setlocale(LC_NUMERIC, $locale);
+        
+        $this->markTestSkipped('Need a solution for DB2');
+    }
+
+    /**
+     * verify that {{}} are not going to be replaced in parameters.
+     */
+    public function testNoTablenameReplacement()
+    {
+        $db = $this->getConnection();
+
+        $db->createCommand()->insert(
+            '{{customer}}',
+            [
+                'id' => 43,
+                'name' => 'Some {{weird}} name',
+                'email' => 'test@example.com',
+                'address' => 'Some {{%weird}} address',
+            ]
+        )->execute();
+        $customer = $db->createCommand('SELECT * FROM {{customer}} WHERE [[id]]=43')->queryOne();
+        $this->assertEquals('Some {{weird}} name', $customer['name']);
+        $this->assertEquals('Some {{%weird}} address', $customer['address']);
+
+        $db->createCommand()->update(
+            '{{customer}}',
+            [
+                'name' => 'Some {{updated}} name',
+                'address' => 'Some {{%updated}} address',
+            ],
+            ['id' => 43]
+        )->execute();
+        $customer = $db->createCommand('SELECT * FROM {{customer}} WHERE [[id]]=43')->queryOne();
+        $this->assertEquals('Some {{updated}} name', $customer['name']);
+        $this->assertEquals('Some {{%updated}} address', $customer['address']);
+    }
+    
+    public function batchInsertSqlProvider()
+    {
+        $result = parent::batchInsertSqlProvider();
+
+        foreach ($result as $key => $value) {
+            // Replace `column` with "column"
+            $value['expected'] = str_replace('`', '"', $value['expected']);
+
+            $result[$key] = $value;
+        }
+
+        return $result;
+    }
+
+    public function testAddDropDefaultValue()
+    {
+        $db = $this->getConnection(false);
+        $tableName = 'test_def';
+        $name = 'test_def_constraint';
+        /** @var Schema $schema */
+        $schema = $db->getSchema();
+
+        if ($schema->getTableSchema($tableName) !== null) {
+            $db->createCommand()->dropTable($tableName)->execute();
+        }
+        $db->createCommand()->createTable($tableName, [
+            'int1' => 'integer',
+        ])->execute();
+
+        $this->assertEmpty($schema->getTableDefaultValues($tableName, true));
+        $db->createCommand()->addDefaultValue($name, $tableName, 'int1', 41)->execute();
+        $this->assertRegExp('/^.*41.*$/', $schema->getTableDefaultValues($tableName, true)[0]->value);
+
+        $db->createCommand()->dropDefaultValue('int1', $tableName)->execute();
+        $this->assertEmpty($schema->getTableDefaultValues($tableName, true));
+    }
 }

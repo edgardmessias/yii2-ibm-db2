@@ -16,6 +16,10 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
 
     protected $driverName = 'ibm';
 
+    protected $expectedSchemas = [
+        'test',
+    ];
+
     public function testGetPDOType()
     {
         $values = [
@@ -42,7 +46,10 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
     public function getExpectedColumns()
     {
         $columns = parent::getExpectedColumns();
+
         unset($columns['enum_col']);
+        unset($columns['json_col']);
+
         $columns['int_col']['dbType'] = 'INTEGER';
         $columns['int_col']['size'] = 4;
         $columns['int_col']['precision'] = 4;
@@ -52,6 +59,12 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
         $columns['int_col2']['precision'] = 4;
         $columns['int_col2']['scale'] = 0;
         $columns['int_col2']['defaultValue'] = '1';
+        $columns['tinyint_col']['type'] = 'smallint';
+        $columns['tinyint_col']['dbType'] = 'SMALLINT';
+        $columns['tinyint_col']['size'] = 2;
+        $columns['tinyint_col']['precision'] = 2;
+        $columns['tinyint_col']['scale'] = 0;
+        $columns['tinyint_col']['defaultValue'] = '1';
         $columns['smallint_col']['dbType'] = 'SMALLINT';
         $columns['smallint_col']['size'] = 2;
         $columns['smallint_col']['precision'] = 2;
@@ -87,10 +100,12 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
         $columns['time']['precision'] = 10;
         $columns['time']['scale'] = 6;
         $columns['time']['defaultValue'] = '2002-01-01-00.00.00.000000';
+        $columns['bool_col']['type'] = 'smallint';
         $columns['bool_col']['dbType'] = 'SMALLINT';
         $columns['bool_col']['size'] = 2;
         $columns['bool_col']['precision'] = 2;
         $columns['bool_col']['scale'] = 0;
+        $columns['bool_col2']['type'] = 'smallint';
         $columns['bool_col2']['dbType'] = 'SMALLINT';
         $columns['bool_col2']['size'] = 2;
         $columns['bool_col2']['precision'] = 2;
@@ -108,5 +123,88 @@ class SchemaTest extends \yiiunit\framework\db\SchemaTest
         $columns['bit_col']['scale'] = 0;
         $columns['bit_col']['defaultValue'] = '130';
         return $columns;
+    }
+    
+    public function constraintsProvider()
+    {
+        $result = parent::constraintsProvider();
+        $result['1: check'][2][0]->expression = '"C_check" <> \'\'';
+        
+        $result['1: default'][2] = [new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_default'],
+        ])];
+
+        $result['2: default'][2] = [new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_index_2_1'],
+        ]), new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_index_2_2'],
+        ])];
+
+        $result['3: foreign key'][2][0]->foreignSchemaName = \yiiunit\framework\db\AnyValue::getInstance();
+        $result['3: foreign key'][2][0]->onUpdate = null;
+
+        $result['3: index'][2] = [];
+        $result['3: default'][2] = [];
+
+        $result['4: default'][2] = [new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_col_1'],
+        ]), new \yii\db\DefaultValueConstraint([
+            'value' => '0',
+            'columnNames' => ['C_col_2'],
+        ])];
+
+        return $result;
+    }
+
+    public function testFindUniqueIndexes()
+    {
+        $db = $this->getConnection();
+
+        try {
+            $db->createCommand()->dropTable('uniqueIndex')->execute();
+        } catch (\Exception $e) {
+        }
+        $db->createCommand()->createTable('uniqueIndex', [
+            'somecol' => 'string',
+            'someCol2' => 'string',
+            'someCol3' => 'string',
+        ])->execute();
+
+        /* @var $schema Schema */
+        $schema = $db->schema;
+
+        $uniqueIndexes = $schema->findUniqueIndexes($schema->getTableSchema('uniqueIndex', true));
+        $this->assertEquals([], $uniqueIndexes);
+
+        $db->createCommand()->createIndex('somecolUnique', 'uniqueIndex', 'somecol', true)->execute();
+
+        $uniqueIndexes = $schema->findUniqueIndexes($schema->getTableSchema('uniqueIndex', true));
+        $this->assertEquals([
+            'somecolUnique' => ['somecol'],
+        ], $uniqueIndexes);
+
+        // create another column with upper case letter that fails postgres
+        // see https://github.com/yiisoft/yii2/issues/10613
+        $db->createCommand()->createIndex('someCol2Unique', 'uniqueIndex', 'someCol2', true)->execute();
+
+        $uniqueIndexes = $schema->findUniqueIndexes($schema->getTableSchema('uniqueIndex', true));
+        $this->assertEquals([
+            'somecolUnique' => ['somecol'],
+            'someCol2Unique' => ['someCol2'],
+        ], $uniqueIndexes);
+        
+        // see https://github.com/yiisoft/yii2/issues/13814
+        $db->createCommand()->createIndex('another unique index', 'uniqueIndex', 'someCol3', true)->execute();
+
+        $uniqueIndexes = $schema->findUniqueIndexes($schema->getTableSchema('uniqueIndex', true));
+        $this->assertEquals([
+            'somecolUnique' => ['somecol'],
+            'someCol2Unique' => ['someCol2'],
+            'another unique index' => ['someCol3'],
+        ], $uniqueIndexes);
     }
 }

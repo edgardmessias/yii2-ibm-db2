@@ -9,7 +9,9 @@
 namespace edgardmessias\db\ibm\db2;
 
 use yii\base\InvalidParamException;
+use yii\db\Constraint;
 use yii\db\Expression;
+use yii\db\Query;
 
 /**
  * QueryBuilder is the query builder for DB2 databases.
@@ -40,6 +42,14 @@ class QueryBuilder extends \yii\db\QueryBuilder
         Schema::TYPE_BOOLEAN => 'smallint',
         Schema::TYPE_MONEY => 'decimal(19,4)',
     ];
+
+    protected function defaultExpressionBuilders()
+    {
+        return array_merge(parent::defaultExpressionBuilders(), [
+            'yii\db\conditions\InCondition' => 'edgardmessias\db\ibm\db2\conditions\InConditionBuilder',
+            'yii\db\conditions\LikeCondition' => 'edgardmessias\db\ibm\db2\conditions\LikeConditionBuilder',
+        ]);
+    }
 
     /**
      * Builds a SQL statement for truncating a DB table.
@@ -170,12 +180,27 @@ class QueryBuilder extends \yii\db\QueryBuilder
             return '';
         }
 
+        if (!$this->hasOffset($offset)) {
+            return ':query FETCH FIRST ' . $limit . ' ROWS ONLY';
+        }
+
+        /**
+         * @todo Need remote the `RN_` from result to use in "INSERT" query
+         */
         $limitOffsetStatment = 'SELECT * FROM (SELECT SUBQUERY_.*, ROW_NUMBER() OVER(:order) AS RN_ FROM ( :query ) AS SUBQUERY_) as t WHERE :offset :limit';
 
         $replacement = $this->hasOffset($offset) ? 't.RN_ > ' . $offset : 't.RN_ > 0';
         $limitOffsetStatment = str_replace(':offset', $replacement, $limitOffsetStatment);
 
-        $replacement = $this->hasLimit($limit) ? 'AND t.RN_ <= ' . ($limit + $offset) : '';
+        $replacement = '';
+        
+        if ($this->hasLimit($limit)) {
+            if ($limit instanceof \yii\db\ExpressionInterface || $offset instanceof \yii\db\ExpressionInterface) {
+                $replacement = 'AND t.RN_ <= (' . $limit  . ' + ' . $offset . ')';
+            } else {
+                $replacement = 'AND t.RN_ <= ' . ($limit + $offset);
+            }
+        }
         $limitOffsetStatment = str_replace(':limit', $replacement, $limitOffsetStatment);
 
         return $limitOffsetStatment;
@@ -194,67 +219,89 @@ class QueryBuilder extends \yii\db\QueryBuilder
     /**
      * @inheritdoc
      */
-    protected function buildCompositeInCondition($operator, $columns, $values, &$params)
+    public function prepareInsertValues($table, $columns, $params = [])
     {
-        $vss = [];
-        foreach ($values as $value) {
-            $vs = [];
-            foreach ($columns as $column) {
-                if (isset($value[$column])) {
-                    $phName = self::PARAM_PREFIX . count($params);
-                    $params[$phName] = $value[$column];
-                    $vs[] = $phName;
-                } else {
-                    $vs[] = 'NULL';
-                }
+        $result = parent::prepareInsertValues($table, $columns, $params);
+
+        // Empty placeholders, replace for (DEFAULT, DEFAULT, ...)
+        if (empty($result[1]) && $result[2] === ' DEFAULT VALUES') {
+            $schema = $this->db->getSchema();
+            if (($tableSchema = $schema->getTableSchema($table)) !== null) {
+                $columnSchemas = $tableSchema->columns;
+            } else {
+                $columnSchemas = [];
             }
-            $vss[] = 'select ' . implode(', ', $vs) . ' from SYSIBM.SYSDUMMY1';
+            $result[1] = array_fill(0, count($columnSchemas), 'DEFAULT');
         }
 
-        $sqlColumns = [];
-        foreach ($columns as $i => $column) {
-            $sqlColumns[] = strpos($column, '(') === false ? $this->db->quoteColumnName($column) : $column;
-        }
-
-        return '(' . implode(', ', $sqlColumns) . ") $operator (" . implode(' UNION ', $vss) . ')';
+        return $result;
     }
-
+    
     /**
      * @inheritdoc
      */
-    public function insert($table, $columns, &$params)
+    public function upsert($table, $insertColumns, $updateColumns, &$params)
     {
-        $schema = $this->db->getSchema();
-        if (($tableSchema = $schema->getTableSchema($table)) !== null) {
-            $columnSchemas = $tableSchema->columns;
-        } else {
-            $columnSchemas = [];
+        /** @var Constraint[] $constraints */
+        list($uniqueNames, $insertNames, $updateNames) = $this->prepareUpsertColumns($table, $insertColumns, $updateColumns, $constraints);
+        if (empty($uniqueNames)) {
+            return $this->insert($table, $insertColumns, $params);
         }
-        $names = [];
-        $placeholders = [];
-        foreach ($columns as $name => $value) {
-            $names[] = $schema->quoteColumnName($name);
-            if ($value instanceof Expression) {
-                $placeholders[] = $value->expression;
-                foreach ($value->params as $n => $v) {
-                    $params[$n] = $v;
+
+        $onCondition = ['or'];
+        $quotedTableName = $this->db->quoteTableName($table);
+        foreach ($constraints as $constraint) {
+            $constraintCondition = ['and'];
+            foreach ($constraint->columnNames as $name) {
+                $quotedName = $this->db->quoteColumnName($name);
+                $constraintCondition[] = "$quotedTableName.$quotedName=\"EXCLUDED\".$quotedName";
+            }
+            $onCondition[] = $constraintCondition;
+        }
+        $on = $this->buildCondition($onCondition, $params);
+        list(, $placeholders, $values, $params) = $this->prepareInsertValues($table, $insertColumns, $params);
+        if (!empty($placeholders)) {
+            $usingSelectValues = [];
+            foreach ($insertNames as $index => $name) {
+                $usingSelectValues[$name] = new Expression($placeholders[$index]);
+            }
+            $usingSubQuery = (new Query())
+                ->select($usingSelectValues)
+                ->from('SYSIBM.SYSDUMMY1');
+            list($usingValues, $params) = $this->build($usingSubQuery, $params);
+        }
+        $mergeSql = 'MERGE INTO ' . $this->db->quoteTableName($table) . ' '
+            . 'USING (' . (isset($usingValues) ? $usingValues : ltrim($values, ' ')) . ') "EXCLUDED" '
+            . "ON ($on)";
+        $insertValues = [];
+        foreach ($insertNames as $name) {
+            $quotedName = $this->db->quoteColumnName($name);
+            if (strrpos($quotedName, '.') === false) {
+                $quotedName = '"EXCLUDED".' . $quotedName;
+            }
+            $insertValues[] = $quotedName;
+        }
+        $insertSql = 'INSERT (' . implode(', ', $insertNames) . ')'
+            . ' VALUES (' . implode(', ', $insertValues) . ')';
+        if ($updateColumns === false) {
+            return "$mergeSql WHEN NOT MATCHED THEN $insertSql";
+        }
+
+        if ($updateColumns === true) {
+            $updateColumns = [];
+            foreach ($updateNames as $name) {
+                $quotedName = $this->db->quoteColumnName($name);
+                if (strrpos($quotedName, '.') === false) {
+                    $quotedName = '"EXCLUDED".' . $quotedName;
                 }
-            } else {
-                $phName = self::PARAM_PREFIX . count($params);
-                $placeholders[] = $phName;
-                $params[$phName] = !is_array($value) && isset($columnSchemas[$name]) ? $columnSchemas[$name]->dbTypecast($value) : $value;
+                $updateColumns[$name] = new Expression($quotedName);
             }
         }
-
-        if (empty($placeholders)) {
-            $placeholders = array_fill(0, count($columnSchemas), 'DEFAULT');
-        }
-
-        return 'INSERT INTO ' . $schema->quoteTableName($table)
-        . (!empty($names) ? ' (' . implode(', ', $names) . ')' : '')
-        . ' VALUES (' . implode(', ', $placeholders) . ')';
+        list($updates, $params) = $this->prepareUpdateSets($table, $updateColumns, $params);
+        $updateSql = 'UPDATE SET ' . implode(', ', $updates);
+        return "$mergeSql WHEN MATCHED THEN $updateSql WHEN NOT MATCHED THEN $insertSql";
     }
-    
+
     /**
      * Creates a SELECT EXISTS() SQL statement.
      * @param string $rawSql the subquery in a raw form to select from.
@@ -290,5 +337,33 @@ class QueryBuilder extends \yii\db\QueryBuilder
     public function dropCommentFromTable($table)
     {
         return 'COMMENT ON TABLE ' . $this->db->quoteTableName($table) . " IS ''";
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function dropIndex($name, $table)
+    {
+        return 'DROP INDEX ' . $this->db->quoteTableName($name);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addDefaultValue($name, $table, $column, $value)
+    {
+        return 'ALTER TABLE ' . $this->db->quoteTableName($table) 
+            . ' ALTER COLUMN ' . $this->db->quoteColumnName($column)
+            . ' SET DEFAULT ' . $this->db->quoteValue($value);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function dropDefaultValue($name, $table)
+    {
+        return 'ALTER TABLE ' . $this->db->quoteTableName($table) 
+            . ' ALTER COLUMN ' . $this->db->quoteColumnName($name)
+            . ' DROP DEFAULT';
     }
 }

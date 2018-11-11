@@ -150,4 +150,13 @@ class ConnectionTest extends \yiiunit\framework\db\ConnectionTest
         $profilesCount = $connection->createCommand('SELECT COUNT(*) FROM "profile" WHERE "description" = \'test transaction shortcut\';')->queryScalar();
         $this->assertEquals(1, $profilesCount, 'profile should be inserted in transaction shortcut');
     }
+    public function testExceptionContainsRawQuery()
+    {
+        $this->markTestSkipped("IBM DB2 not support emulatePrepare");
+    }
+    
+    public function testEnableQueryLog()
+    {
+        $this->markTestSkipped("Need rework");
+    }
 }

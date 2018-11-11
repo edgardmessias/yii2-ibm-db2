@@ -16,9 +16,17 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
 
     protected $driverName = 'ibm';
     
-    protected function getQueryBuilder()
+    protected $likeEscapeCharSql = " ESCAPE '!'";
+    protected $likeParameterReplacements = [
+        '\%' => '!%',
+        '\_' => '!_',
+        '!' => '!!',
+        '\\\\' => '\\',
+    ];
+
+    protected function getQueryBuilder($reset = true, $open = false)
     {
-        $connection = $this->getConnection(true, false);
+        $connection = $this->getConnection($reset, $open);
 
         \Yii::$container->set('db', $connection);
         
@@ -103,26 +111,14 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
             '([[id]], [[name]]) IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)',
             [':qp0' => 1, ':qp1' => 'oy', ':qp2' => 2, ':qp3' => 'yo']
         ];
-        $conditions[57] = [ ['in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
-        $conditions[58] = [ ['not in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") NOT IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
+        $conditions[51] = [ ['in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
+        $conditions[52] = [ ['not in', ['id', 'name'], [['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar']]], '("id", "name") NOT IN (select :qp0, :qp1 from SYSIBM.SYSDUMMY1 UNION select :qp2, :qp3 from SYSIBM.SYSDUMMY1)', [':qp0' => 1, ':qp1' => 'foo', ':qp2' => 2, ':qp3' => 'bar'] ];
 
         //Remove composite IN
         //unset($conditions[51]);
         //unset($conditions[52]);
 
         return $conditions;
-    }
-
-    public function testAddDropPrimaryKey()
-    {
-        $tableName = 'constraints';
-
-        // Change field1 to not null
-        $qb = $this->getQueryBuilder();
-        $qb->db->createCommand('ALTER TABLE "' . $tableName . '" ALTER COLUMN "field1" SET not null')->execute();
-        $qb->db->schema->refreshTableSchema($tableName);
-
-        parent::testAddDropPrimaryKey();
     }
 
     public function testCommentColumn()
@@ -151,4 +147,85 @@ class QueryBuilderTest extends \yiiunit\framework\db\QueryBuilderTest
         $this->assertEquals($this->replaceQuotes($expected), $sql);
     }
 
+    public function batchInsertProvider()
+    {
+        $result = parent::batchInsertProvider();
+
+        $result['escape-danger-chars']['expected'] = $this->replaceQuotes("INSERT INTO [[customer]] ([[address]]) VALUES ('SQL-danger chars are escaped: ''); --')");
+
+        return $result;
+    }
+    
+    public function indexesProvider()
+    {
+        $result = parent::indexesProvider();
+
+        $result['drop'][0] = "DROP INDEX [[CN_constraints_2_single]]";
+
+        return $result;
+    }
+
+    public function defaultValuesProvider()
+    {
+        $tableName = 'T_constraints_1';
+        $name = 'C_default';
+        return [
+            'drop' => [
+                "ALTER TABLE {{{$tableName}}} ALTER COLUMN [[$name]] DROP DEFAULT",
+                function (QueryBuilder $qb) use ($tableName, $name) {
+                    return $qb->dropDefaultValue($name, $tableName);
+                },
+            ],
+            'add' => [
+                "ALTER TABLE {{{$tableName}}} ALTER COLUMN [[$name]] SET DEFAULT 0",
+                function (QueryBuilder $qb) use ($tableName, $name) {
+                    return $qb->addDefaultValue($name, $tableName, $name, 0);
+                },
+            ],
+        ];
+    }
+
+    public function upsertProvider()
+    {
+        $concreteData = [
+            'regular values' => [
+                3 => 'MERGE INTO "T_upsert" USING (SELECT :qp0 AS "email", :qp1 AS "address", :qp2 AS "status", :qp3 AS "profile_id" FROM "SYSIBM"."SYSDUMMY1") "EXCLUDED" ON ("T_upsert"."email"="EXCLUDED"."email") WHEN MATCHED THEN UPDATE SET "address"="EXCLUDED"."address", "status"="EXCLUDED"."status", "profile_id"="EXCLUDED"."profile_id" WHEN NOT MATCHED THEN INSERT ("email", "address", "status", "profile_id") VALUES ("EXCLUDED"."email", "EXCLUDED"."address", "EXCLUDED"."status", "EXCLUDED"."profile_id")',
+            ],
+            'regular values with update part' => [
+                3 => 'MERGE INTO "T_upsert" USING (SELECT :qp0 AS "email", :qp1 AS "address", :qp2 AS "status", :qp3 AS "profile_id" FROM "SYSIBM"."SYSDUMMY1") "EXCLUDED" ON ("T_upsert"."email"="EXCLUDED"."email") WHEN MATCHED THEN UPDATE SET "address"=:qp4, "status"=:qp5, "orders"=T_upsert.orders + 1 WHEN NOT MATCHED THEN INSERT ("email", "address", "status", "profile_id") VALUES ("EXCLUDED"."email", "EXCLUDED"."address", "EXCLUDED"."status", "EXCLUDED"."profile_id")',
+            ],
+            'regular values without update part' => [
+                3 => 'MERGE INTO "T_upsert" USING (SELECT :qp0 AS "email", :qp1 AS "address", :qp2 AS "status", :qp3 AS "profile_id" FROM "SYSIBM"."SYSDUMMY1") "EXCLUDED" ON ("T_upsert"."email"="EXCLUDED"."email") WHEN NOT MATCHED THEN INSERT ("email", "address", "status", "profile_id") VALUES ("EXCLUDED"."email", "EXCLUDED"."address", "EXCLUDED"."status", "EXCLUDED"."profile_id")',
+            ],
+            'query' => [
+                3 => 'MERGE INTO "T_upsert" USING (SELECT "email", 2 AS "status" FROM "customer" WHERE "name"=:qp0 FETCH FIRST 1 ROWS ONLY) "EXCLUDED" ON ("T_upsert"."email"="EXCLUDED"."email") WHEN MATCHED THEN UPDATE SET "status"="EXCLUDED"."status" WHEN NOT MATCHED THEN INSERT ("email", "status") VALUES ("EXCLUDED"."email", "EXCLUDED"."status")',
+            ],
+            'query with update part' => [
+                3 => 'MERGE INTO "T_upsert" USING (SELECT "email", 2 AS "status" FROM "customer" WHERE "name"=:qp0 FETCH FIRST 1 ROWS ONLY) "EXCLUDED" ON ("T_upsert"."email"="EXCLUDED"."email") WHEN MATCHED THEN UPDATE SET "address"=:qp1, "status"=:qp2, "orders"=T_upsert.orders + 1 WHEN NOT MATCHED THEN INSERT ("email", "status") VALUES ("EXCLUDED"."email", "EXCLUDED"."status")',
+            ],
+            'query without update part' => [
+                3 => 'MERGE INTO "T_upsert" USING (SELECT "email", 2 AS "status" FROM "customer" WHERE "name"=:qp0 FETCH FIRST 1 ROWS ONLY) "EXCLUDED" ON ("T_upsert"."email"="EXCLUDED"."email") WHEN NOT MATCHED THEN INSERT ("email", "status") VALUES ("EXCLUDED"."email", "EXCLUDED"."status")',
+            ],
+            'values and expressions' => [
+                3 => 'INSERT INTO {{%T_upsert}} ({{%T_upsert}}.[[email]], [[ts]]) VALUES (:qp0, now())',
+            ],
+            'values and expressions with update part' => [
+                3 => 'INSERT INTO {{%T_upsert}} ({{%T_upsert}}.[[email]], [[ts]]) VALUES (:qp0, now())',
+            ],
+            'values and expressions without update part' => [
+                3 => 'INSERT INTO {{%T_upsert}} ({{%T_upsert}}.[[email]], [[ts]]) VALUES (:qp0, now())',
+            ],
+            'query, values and expressions with update part' => [
+                3 => 'MERGE INTO {{%T_upsert}} USING (SELECT :phEmail AS "email", now() AS [[time]]) "EXCLUDED" ON ({{%T_upsert}}."email"="EXCLUDED"."email") WHEN MATCHED THEN UPDATE SET "ts"=:qp1, [[orders]]=T_upsert.orders + 1 WHEN NOT MATCHED THEN INSERT ("email", [[time]]) VALUES ("EXCLUDED"."email", "EXCLUDED".[[time]])',
+            ],
+            'query, values and expressions without update part' => [
+                3 => 'MERGE INTO {{%T_upsert}} USING (SELECT :phEmail AS "email", now() AS [[time]]) "EXCLUDED" ON ({{%T_upsert}}."email"="EXCLUDED"."email") WHEN MATCHED THEN UPDATE SET "ts"=:qp1, [[orders]]=T_upsert.orders + 1 WHEN NOT MATCHED THEN INSERT ("email", [[time]]) VALUES ("EXCLUDED"."email", "EXCLUDED".[[time]])',
+            ],
+        ];
+        $newData = parent::upsertProvider();
+        foreach ($concreteData as $testName => $data) {
+            $newData[$testName] = array_replace($newData[$testName], $data);
+        }
+        return $newData;
+    }
 }
