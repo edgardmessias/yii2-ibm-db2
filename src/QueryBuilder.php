@@ -181,7 +181,7 @@ class QueryBuilder extends \yii\db\QueryBuilder
         }
 
         if (!$this->hasOffset($offset)) {
-            return ':query FETCH FIRST ' . $limit . ' ROWS ONLY';
+            return ':query :order FETCH FIRST ' . $limit . ' ROWS ONLY';
         }
 
         /**
